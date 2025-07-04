@@ -1,6 +1,5 @@
 import type { NextAuthOptions } from "next-auth"
 import DiscordProvider from "next-auth/providers/discord"
-import { executeQuery } from "@/lib/db"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -14,35 +13,15 @@ export const authOptions: NextAuthOptions = {
       },
     }),
   ],
+  pages: {
+    signIn: "/auth/signin",
+  },
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === "discord" && profile) {
-        try {
-          // Store or update user in database
-          await executeQuery(
-            `INSERT INTO users (discord_id, username, discriminator, avatar, email) 
-             VALUES (?, ?, ?, ?, ?) 
-             ON DUPLICATE KEY UPDATE 
-               username = VALUES(username),
-               discriminator = VALUES(discriminator),
-               avatar = VALUES(avatar),
-               email = VALUES(email),
-               updated_at = CURRENT_TIMESTAMP`,
-            [profile.id, profile.username, profile.discriminator || "0000", profile.avatar, profile.email],
-          )
-          return true
-        } catch (error) {
-          console.error("Database error during sign in:", error)
-          return false
-        }
-      }
-      return true
-    },
     async jwt({ token, account, profile }) {
-      if (account?.provider === "discord" && profile) {
+      if (account && profile) {
         token.discordId = profile.id
         token.username = profile.username
-        token.discriminator = profile.discriminator || "0000"
+        token.discriminator = profile.discriminator
         token.avatar = profile.avatar
       }
       return token
@@ -57,11 +36,7 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
-  pages: {
-    signIn: "/auth/signin",
-  },
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET, // This uses the NEXTAUTH_SECRET
 }

@@ -1,236 +1,222 @@
 "use client"
 
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Users, Shield, Trophy, Clock, Copy, ExternalLink } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Crown, Users, Shield, MessageCircle, Copy, ExternalLink, LogOut } from "lucide-react"
+import { Navigation } from "@/components/navigation"
 import { AnimatedSection } from "@/components/animated-section"
-import { ParallaxBackground } from "@/components/parallax-background"
 import { TiltCard } from "@/components/tilt-card"
-import { TypingAnimation } from "@/components/typing-animation"
-import { useState } from "react"
 import { toast } from "sonner"
+import { signOut } from "next-auth/react"
 
 export default function HomePage() {
-  const [copied, setCopied] = useState(false)
-  const serverIP = "89.42.88.252:22097"
+  const { data: session, status } = useSession()
+  const router = useRouter()
 
-  const copyServerIP = async () => {
-    try {
-      await navigator.clipboard.writeText(serverIP)
-      setCopied(true)
-      toast.success("Server IP copied to clipboard!")
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      toast.error("Failed to copy server IP")
+  useEffect(() => {
+    if (status === "loading") return // Still loading
+    if (!session) {
+      router.push("/auth/signin")
     }
+  }, [session, status, router])
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-900 via-orange-800 to-orange-600 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    )
   }
 
-  const joinDiscord = () => {
+  if (!session) {
+    return null // Will redirect to sign in
+  }
+
+  const copyServerIP = () => {
+    navigator.clipboard.writeText("89.42.88.252:22097")
+    toast.success("Server IP copied to clipboard!")
+  }
+
+  const handleDiscordJoin = () => {
     window.open("https://discord.gg/eQeHev6p94", "_blank")
   }
 
-  const joinServer = () => {
-    window.open(`mtasa://${serverIP}`, "_blank")
+  const handleSignOut = () => {
+    signOut({ callbackUrl: "/auth/signin" })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <ParallaxBackground />
+    <div className="min-h-screen bg-gradient-to-br from-orange-900 via-orange-800 to-orange-600 relative overflow-hidden">
+      {/* Background elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-20 left-20 w-32 h-32 bg-orange-400/20 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-48 h-48 bg-orange-300/20 rounded-full blur-xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-500/10 rounded-full blur-2xl animate-pulse delay-500"></div>
+      </div>
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4">
-        <div className="container mx-auto text-center z-10">
-          <AnimatedSection>
-            <div className="mb-8">
-              <Badge variant="secondary" className="mb-4 text-sm px-4 py-2">
-                🇲🇦 Morocco's Premier MTA Server
-              </Badge>
-              <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-6">
-                United Server
-              </h1>
-              <div className="text-xl md:text-2xl text-gray-300 mb-8 h-16">
-                <TypingAnimation
-                  text="Experience the ultimate roleplay adventure in Morocco's most authentic MTA server"
-                  speed={50}
-                />
-              </div>
+      <Navigation />
+
+      <div className="container mx-auto px-4 py-16 relative z-10">
+        {/* Header */}
+        <AnimatedSection animation="slideUp">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600/30 to-orange-400/30 backdrop-blur-xl border border-orange-500/30 rounded-full px-6 py-3 mb-6">
+              <Crown className="h-6 w-6 text-orange-300" />
+              <span className="text-orange-200 font-semibold">UNITED SERVER</span>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
-                onClick={joinServer}
-              >
-                <ExternalLink className="mr-2 h-5 w-5" />
-                Join Server
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white px-8 py-3 text-lg bg-transparent"
-                onClick={joinDiscord}
-              >
-                <Users className="mr-2 h-5 w-5" />
-                Join Discord
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 text-gray-400">
-              <span>Server IP:</span>
-              <code className="bg-gray-800 px-3 py-1 rounded text-green-400 font-mono">{serverIP}</code>
-              <Button variant="ghost" size="sm" onClick={copyServerIP} className="text-gray-400 hover:text-white">
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
-          <AnimatedSection>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-16">
-              <TiltCard>
-                <Card className="bg-gray-800/50 border-gray-700 text-center">
-                  <CardHeader>
-                    <Users className="h-8 w-8 mx-auto text-blue-400 mb-2" />
-                    <CardTitle className="text-2xl text-white">500+</CardTitle>
-                    <CardDescription>Active Players</CardDescription>
-                  </CardHeader>
-                </Card>
-              </TiltCard>
-
-              <TiltCard>
-                <Card className="bg-gray-800/50 border-gray-700 text-center">
-                  <CardHeader>
-                    <Shield className="h-8 w-8 mx-auto text-green-400 mb-2" />
-                    <CardTitle className="text-2xl text-white">24/7</CardTitle>
-                    <CardDescription>Server Uptime</CardDescription>
-                  </CardHeader>
-                </Card>
-              </TiltCard>
-
-              <TiltCard>
-                <Card className="bg-gray-800/50 border-gray-700 text-center">
-                  <CardHeader>
-                    <Trophy className="h-8 w-8 mx-auto text-yellow-400 mb-2" />
-                    <CardTitle className="text-2xl text-white">#1</CardTitle>
-                    <CardDescription>Morocco Server</CardDescription>
-                  </CardHeader>
-                </Card>
-              </TiltCard>
-
-              <TiltCard>
-                <Card className="bg-gray-800/50 border-gray-700 text-center">
-                  <CardHeader>
-                    <Clock className="h-8 w-8 mx-auto text-purple-400 mb-2" />
-                    <CardTitle className="text-2xl text-white">2021</CardTitle>
-                    <CardDescription>Since Established</CardDescription>
-                  </CardHeader>
-                </Card>
-              </TiltCard>
-            </div>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto">
-          <AnimatedSection>
-            <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Why Choose United Server?
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <TiltCard>
-                <Card className="bg-gray-800/50 border-gray-700 h-full">
-                  <CardHeader>
-                    <CardTitle className="text-xl text-white flex items-center">
-                      <Shield className="h-6 w-6 mr-2 text-blue-400" />
-                      Professional Staff
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-gray-300">
-                      Our experienced team ensures fair gameplay and maintains a friendly environment for all players.
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              </TiltCard>
-
-              <TiltCard>
-                <Card className="bg-gray-800/50 border-gray-700 h-full">
-                  <CardHeader>
-                    <CardTitle className="text-xl text-white flex items-center">
-                      <Users className="h-6 w-6 mr-2 text-green-400" />
-                      Active Community
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-gray-300">
-                      Join hundreds of active players in Morocco's most vibrant MTA roleplay community.
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              </TiltCard>
-
-              <TiltCard>
-                <Card className="bg-gray-800/50 border-gray-700 h-full">
-                  <CardHeader>
-                    <CardTitle className="text-xl text-white flex items-center">
-                      <Trophy className="h-6 w-6 mr-2 text-yellow-400" />
-                      Unique Features
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-gray-300">
-                      Experience custom scripts, unique jobs, and authentic Moroccan roleplay scenarios.
-                    </CardDescription>
-                  </CardContent>
-                </Card>
-              </TiltCard>
-            </div>
-          </AnimatedSection>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto text-center">
-          <AnimatedSection>
-            <h2 className="text-4xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
-              Ready to Start Your Journey?
-            </h2>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of players in Morocco's premier MTA roleplay server. Create your character, build your
-              story, and become part of our community.
+            <h1 className="text-5xl font-bold text-white mb-4">
+              Welcome to <span className="text-orange-300">United Server</span>
+            </h1>
+            <p className="text-xl text-orange-100 max-w-2xl mx-auto opacity-90">
+              The ultimate GTA San Andreas Multiplayer experience awaits you.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+
+            {/* User info */}
+            <div className="mt-6 flex items-center justify-center gap-4">
+              <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm rounded-full px-4 py-2">
+                <img
+                  src={session.user?.image || "/placeholder-user.jpg"}
+                  alt="User avatar"
+                  className="w-6 h-6 rounded-full"
+                />
+                <span className="text-orange-200">Welcome, {session.user?.name}</span>
+              </div>
               <Button
-                size="lg"
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg"
-                onClick={joinServer}
-              >
-                <ExternalLink className="mr-2 h-5 w-5" />
-                Join Now
-              </Button>
-              <Button
-                size="lg"
+                onClick={handleSignOut}
                 variant="outline"
-                className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white px-8 py-3 text-lg bg-transparent"
-                onClick={joinDiscord}
+                size="sm"
+                className="bg-black/30 border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
               >
-                <Users className="mr-2 h-5 w-5" />
-                Discord Community
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
               </Button>
+            </div>
+          </div>
+        </AnimatedSection>
+
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            {/* Server Info Card */}
+            <AnimatedSection animation="slideUp" delay={200}>
+              <TiltCard>
+                <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30 h-full">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-white flex items-center gap-3">
+                      <Shield className="h-6 w-6 text-orange-400" />
+                      Server Information
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-orange-200 font-semibold">Server IP:</p>
+                      <div className="flex items-center gap-2 bg-black/30 rounded-lg p-3">
+                        <code className="text-orange-300 font-mono">89.42.88.252:22097</code>
+                        <Button
+                          onClick={copyServerIP}
+                          size="sm"
+                          variant="ghost"
+                          className="text-orange-300 hover:text-orange-200 hover:bg-orange-500/20"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-orange-200 font-semibold">Status:</p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-green-300">Online</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TiltCard>
+            </AnimatedSection>
+
+            {/* Discord Card */}
+            <AnimatedSection animation="slideUp" delay={400}>
+              <TiltCard>
+                <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30 h-full">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-white flex items-center gap-3">
+                      <MessageCircle className="h-6 w-6 text-blue-400" />
+                      Join Discord
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-orange-200">Connect with our community and stay updated with the latest news.</p>
+                    <Button onClick={handleDiscordJoin} className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Join Discord Server
+                      <ExternalLink className="h-4 w-4 ml-2" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TiltCard>
+            </AnimatedSection>
+
+            {/* Quick Actions Card */}
+            <AnimatedSection animation="slideUp" delay={600}>
+              <TiltCard>
+                <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30 h-full">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-white flex items-center gap-3">
+                      <Users className="h-6 w-6 text-orange-400" />
+                      Quick Actions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button
+                      onClick={() => router.push("/verify")}
+                      variant="outline"
+                      className="w-full bg-black/30 border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
+                    >
+                      Verify Access
+                    </Button>
+                    <Button
+                      onClick={() => router.push("/dashboard")}
+                      variant="outline"
+                      className="w-full bg-black/30 border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
+                    >
+                      Dashboard
+                    </Button>
+                    <Button
+                      onClick={() => router.push("/rules")}
+                      variant="outline"
+                      className="w-full bg-black/30 border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
+                    >
+                      Server Rules
+                    </Button>
+                  </CardContent>
+                </Card>
+              </TiltCard>
+            </AnimatedSection>
+          </div>
+
+          {/* Join Server Section */}
+          <AnimatedSection animation="slideUp" delay={800}>
+            <div className="text-center">
+              <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30 inline-block">
+                <CardContent className="p-8">
+                  <h2 className="text-3xl font-bold text-white mb-4">Ready to Play?</h2>
+                  <p className="text-orange-200 mb-6">Copy the server IP and connect to start your adventure!</p>
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                    <div className="flex items-center gap-2 bg-black/50 rounded-lg p-4">
+                      <code className="text-orange-300 font-mono text-lg">89.42.88.252:22097</code>
+                      <Button onClick={copyServerIP} size="sm" className="bg-orange-500 hover:bg-orange-600 text-white">
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </AnimatedSection>
         </div>
-      </section>
+      </div>
     </div>
   )
 }
