@@ -1,325 +1,234 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Users, Clock, Calendar, Play, Crown, MessageCircle, Video, Zap, Shield, Star, Copy } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Users, Shield, Trophy, Clock, Copy, ExternalLink } from "lucide-react"
 import { AnimatedSection } from "@/components/animated-section"
-import { FloatingParticles } from "@/components/floating-particles"
-import { TypingAnimation } from "@/components/typing-animation"
 import { ParallaxBackground } from "@/components/parallax-background"
 import { TiltCard } from "@/components/tilt-card"
-import { SoundWave } from "@/components/sound-wave"
-import { useScrollAnimation, useCountUp } from "@/hooks/use-scroll-animation"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
+import { TypingAnimation } from "@/components/typing-animation"
+import { useState } from "react"
 import { toast } from "sonner"
 
-function AnimatedCounter({ end, label, icon: Icon }: { end: number; label: string; icon: any }) {
-  const { ref, isVisible } = useScrollAnimation()
-  const { count, setIsActive } = useCountUp(end)
-
-  useEffect(() => {
-    if (isVisible) {
-      setIsActive(true)
-    }
-  }, [isVisible, setIsActive])
-
-  return (
-    <div ref={ref} className="text-center group">
-      <div className="relative">
-        <Icon className="h-12 w-12 text-orange-500 mx-auto mb-4 group-hover:scale-125 transition-transform duration-500" />
-        <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500" />
-      </div>
-      <div className="text-4xl font-bold text-white mb-2 group-hover:text-orange-400 transition-colors">{count}+</div>
-      <div className="text-sm text-gray-400 uppercase tracking-wider">{label}</div>
-    </div>
-  )
-}
-
 export default function HomePage() {
-  const router = useRouter()
-  const { data: session } = useSession()
-  const [serverStats, setServerStats] = useState({
-    onlinePlayers: 45,
-    maxPlayers: 100,
-    uptime: 99.9,
-  })
+  const [copied, setCopied] = useState(false)
+  const serverIP = "89.42.88.252:22097"
 
-  useEffect(() => {
-    // Fetch server stats on component mount
-    fetch("/api/stats")
-      .then((res) => res.json())
-      .then((data) => setServerStats(data))
-      .catch((err) => console.error("Failed to fetch server stats:", err))
-  }, [])
-
-  const handleJoinServer = () => {
-    const serverIP = "mtasa://89.42.88.252:22097"
-    window.open(serverIP, "_blank")
-    toast.success("Opening MTA:SA client...")
+  const copyServerIP = async () => {
+    try {
+      await navigator.clipboard.writeText(serverIP)
+      setCopied(true)
+      toast.success("Server IP copied to clipboard!")
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      toast.error("Failed to copy server IP")
+    }
   }
 
-  const handleDiscord = () => {
+  const joinDiscord = () => {
     window.open("https://discord.gg/eQeHev6p94", "_blank")
   }
 
-  const handleTrailer = () => {
-    window.open("https://youtube.com/watch?v=unitedserver", "_blank")
-  }
-
-  const handleVerify = () => {
-    if (session) {
-      router.push("/verify")
-    } else {
-      router.push("/auth/signin")
-    }
-  }
-
-  const handleCopyIP = async () => {
-    const serverIP = "mtasa://89.42.88.252:22097"
-    try {
-      await navigator.clipboard.writeText(serverIP)
-      toast.success("Server IP copied to clipboard!")
-    } catch (err) {
-      toast.error("Failed to copy IP address")
-    }
+  const joinServer = () => {
+    window.open(`mtasa://${serverIP}`, "_blank")
   }
 
   return (
-    <div className="min-h-screen hero-pattern relative overflow-hidden">
-      {/* Background Effects */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <ParallaxBackground />
-      <FloatingParticles />
-      <SoundWave />
 
-      {/* Diagonal Split Layout */}
-      <div className="relative min-h-screen">
-        {/* Left Side - Main Content */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-orange-950/20 to-transparent">
-          <div className="flex flex-col justify-center min-h-screen pl-8 md:pl-16 lg:pl-24 max-w-4xl">
-            {/* Floating Crown Badge */}
-            <AnimatedSection animation="scaleIn" delay={100}>
-              <div className="mb-8">
-                <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600/20 to-orange-400/20 backdrop-blur-xl border border-orange-500/30 rounded-full px-6 py-3 hover:scale-105 transition-transform duration-500">
-                  <Crown className="h-6 w-6 text-orange-400 animate-pulse" />
-                  <span className="text-orange-300 font-semibold">Morocco's Premier Server</span>
-                </div>
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center px-4">
+        <div className="container mx-auto text-center z-10">
+          <AnimatedSection>
+            <div className="mb-8">
+              <Badge variant="secondary" className="mb-4 text-sm px-4 py-2">
+                🇲🇦 Morocco's Premier MTA Server
+              </Badge>
+              <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-6">
+                United Server
+              </h1>
+              <div className="text-xl md:text-2xl text-gray-300 mb-8 h-16">
+                <TypingAnimation
+                  text="Experience the ultimate roleplay adventure in Morocco's most authentic MTA server"
+                  speed={50}
+                />
               </div>
-            </AnimatedSection>
+            </div>
 
-            {/* Main Title - Stacked Vertically */}
-            <AnimatedSection animation="slideRight" delay={200}>
-              <div className="mb-8">
-                <h1 className="text-7xl md:text-9xl font-black leading-none">
-                  <div className="text-white drop-shadow-2xl mb-2">UNITED</div>
-                  <div className="text-orange-500 text-glow drop-shadow-2xl">SERVER</div>
-                </h1>
-                <div className="w-32 h-1 bg-gradient-to-r from-orange-500 to-orange-300 mt-4 rounded-full" />
-              </div>
-            </AnimatedSection>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
+                onClick={joinServer}
+              >
+                <ExternalLink className="mr-2 h-5 w-5" />
+                Join Server
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white px-8 py-3 text-lg bg-transparent"
+                onClick={joinDiscord}
+              >
+                <Users className="mr-2 h-5 w-5" />
+                Join Discord
+              </Button>
+            </div>
 
-            {/* Subtitle */}
-            <AnimatedSection animation="fadeIn" delay={400}>
-              <div className="mb-8">
-                <h2 className="text-2xl md:text-3xl text-gray-300 font-light">
-                  <TypingAnimation text="Moroccan MTA Roleplay Experience" speed={60} />
-                </h2>
-              </div>
-            </AnimatedSection>
-
-            {/* Description */}
-            <AnimatedSection animation="slideRight" delay={600}>
-              <p className="text-lg text-gray-400 max-w-2xl mb-12 leading-relaxed">
-                Immerse yourself in the ultimate roleplay adventure. Join our thriving community of players in Morocco's
-                most authentic MTA server experience since 2021.
-              </p>
-            </AnimatedSection>
-
-            {/* Action Buttons - Horizontal Layout */}
-            <AnimatedSection animation="slideUp" delay={800}>
-              <div className="flex flex-wrap gap-4 mb-8">
-                <TiltCard>
-                  <Button
-                    size="lg"
-                    onClick={handleJoinServer}
-                    className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-2xl hover:shadow-orange-500/25 transition-all duration-300 group"
-                  >
-                    <Play className="mr-3 h-6 w-6 group-hover:scale-110 transition-transform" />
-                    Join Server
-                  </Button>
-                </TiltCard>
-                <TiltCard>
-                  <Button
-                    size="lg"
-                    onClick={handleVerify}
-                    className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-2xl hover:shadow-green-500/25 transition-all duration-300 group"
-                  >
-                    <Shield className="mr-3 h-6 w-6 group-hover:scale-110 transition-transform" />
-                    {session ? "Verify Access" : "Sign In & Verify"}
-                  </Button>
-                </TiltCard>
-                <TiltCard>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={handleDiscord}
-                    className="border-2 border-gray-600 text-gray-300 hover:bg-gray-800 hover:border-gray-500 px-8 py-4 text-lg bg-black/50 backdrop-blur-sm rounded-xl transition-all duration-300 group"
-                  >
-                    <MessageCircle className="mr-3 h-6 w-6 group-hover:scale-110 transition-transform" />
-                    Discord
-                  </Button>
-                </TiltCard>
-                <TiltCard>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={handleTrailer}
-                    className="border-2 border-blue-600 text-blue-400 hover:bg-blue-900/20 hover:border-blue-500 px-8 py-4 text-lg bg-black/50 backdrop-blur-sm rounded-xl transition-all duration-300 group"
-                  >
-                    <Video className="mr-3 h-6 w-6 group-hover:scale-110 transition-transform" />
-                    Trailer
-                  </Button>
-                </TiltCard>
-              </div>
-            </AnimatedSection>
-
-            {/* Server IP - Better positioned under buttons */}
-            <AnimatedSection animation="fadeIn" delay={1000}>
-              <TiltCard>
-                <div className="inline-flex items-center gap-4 bg-black/80 backdrop-blur-xl border border-orange-500/30 rounded-2xl px-6 py-4 hover:bg-orange-500/10 transition-all duration-300 group max-w-fit">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Server IP</p>
-                    <code className="text-orange-400 font-mono text-lg group-hover:text-orange-300 transition-colors">
-                      mtasa://89.42.88.252:22097
-                    </code>
-                  </div>
-                  <button
-                    onClick={handleCopyIP}
-                    className="p-2 hover:bg-orange-500/20 rounded-lg transition-colors group/copy"
-                  >
-                    <Copy className="h-5 w-5 text-gray-400 group-hover/copy:text-orange-400 transition-colors" />
-                  </button>
-                </div>
-              </TiltCard>
-            </AnimatedSection>
-          </div>
-        </div>
-
-        {/* Right Side - Floating Stats Card */}
-        <div className="absolute right-8 md:right-16 lg:right-24 top-1/2 transform -translate-y-1/2 z-20">
-          <AnimatedSection animation="slideLeft" delay={1200}>
-            <TiltCard intensity={20}>
-              <Card className="bg-gradient-to-br from-black/80 via-orange-950/30 to-black/80 backdrop-blur-xl border border-orange-500/30 shadow-2xl hover:shadow-orange-500/20 transition-all duration-500 w-80">
-                <CardContent className="p-8">
-                  {/* Centered Crown */}
-                  <div className="text-center mb-8">
-                    <div className="relative inline-block">
-                      <Crown className="h-16 w-16 text-orange-400 mx-auto animate-pulse" />
-                      <div className="absolute inset-0 bg-orange-500/30 rounded-full blur-xl" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-orange-400 mt-4 mb-2">UNITED</h3>
-                    <p className="text-orange-300 text-sm">HAPPY NEW YEAR</p>
-                    <p className="text-xs text-orange-200/60 mt-2">2021-2025</p>
-                  </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-6">
-                    <AnimatedCounter end={serverStats.onlinePlayers} label="Players" icon={Users} />
-                    <div className="text-center group">
-                      <div className="relative">
-                        <Clock className="h-12 w-12 text-orange-500 mx-auto mb-4 group-hover:scale-125 transition-transform duration-500" />
-                        <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500" />
-                      </div>
-                      <div className="text-4xl font-bold text-white mb-2 group-hover:text-orange-400 transition-colors">
-                        24/7
-                      </div>
-                      <div className="text-sm text-gray-400 uppercase tracking-wider">Online</div>
-                    </div>
-                    <AnimatedCounter end={2021} label="Since" icon={Calendar} />
-                    <div className="text-center group">
-                      <div className="relative">
-                        <Play className="h-12 w-12 text-orange-500 mx-auto mb-4 group-hover:scale-125 transition-transform duration-500" />
-                        <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500" />
-                      </div>
-                      <div className="text-4xl font-bold text-white mb-2 group-hover:text-orange-400 transition-colors">
-                        RP
-                      </div>
-                      <div className="text-sm text-gray-400 uppercase tracking-wider">Focus</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TiltCard>
-          </AnimatedSection>
-        </div>
-      </div>
-
-      {/* Second Section - Features Showcase */}
-      <section className="relative py-32 bg-gradient-to-b from-transparent via-orange-950/10 to-black/50">
-        <div className="max-w-7xl mx-auto px-8">
-          <AnimatedSection animation="slideUp">
-            <div className="text-center mb-20">
-              <h2 className="text-5xl font-bold text-white mb-6">
-                Why Choose <span className="text-orange-500">UNITED</span>?
-              </h2>
-              <div className="w-24 h-1 bg-gradient-to-r from-orange-500 to-orange-300 mx-auto rounded-full" />
+            <div className="flex items-center justify-center gap-2 text-gray-400">
+              <span>Server IP:</span>
+              <code className="bg-gray-800 px-3 py-1 rounded text-green-400 font-mono">{serverIP}</code>
+              <Button variant="ghost" size="sm" onClick={copyServerIP} className="text-gray-400 hover:text-white">
+                <Copy className="h-4 w-4" />
+              </Button>
             </div>
           </AnimatedSection>
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <AnimatedSection animation="slideUp" delay={200}>
+      {/* Stats Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <AnimatedSection>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-16">
               <TiltCard>
-                <Card className="bg-gradient-to-br from-orange-900/20 to-orange-800/10 backdrop-blur-sm border border-orange-500/20 h-full hover:border-orange-500/40 transition-all duration-500 group">
-                  <CardContent className="p-8 text-center">
-                    <div className="relative mb-6">
-                      <Shield className="h-16 w-16 text-orange-400 mx-auto group-hover:scale-110 transition-transform duration-500" />
-                      <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-4">Secure & Stable</h3>
-                    <p className="text-gray-400 leading-relaxed">
-                      Advanced anti-cheat systems and 99.9% uptime guarantee for uninterrupted gameplay experience.
-                    </p>
+                <Card className="bg-gray-800/50 border-gray-700 text-center">
+                  <CardHeader>
+                    <Users className="h-8 w-8 mx-auto text-blue-400 mb-2" />
+                    <CardTitle className="text-2xl text-white">500+</CardTitle>
+                    <CardDescription>Active Players</CardDescription>
+                  </CardHeader>
+                </Card>
+              </TiltCard>
+
+              <TiltCard>
+                <Card className="bg-gray-800/50 border-gray-700 text-center">
+                  <CardHeader>
+                    <Shield className="h-8 w-8 mx-auto text-green-400 mb-2" />
+                    <CardTitle className="text-2xl text-white">24/7</CardTitle>
+                    <CardDescription>Server Uptime</CardDescription>
+                  </CardHeader>
+                </Card>
+              </TiltCard>
+
+              <TiltCard>
+                <Card className="bg-gray-800/50 border-gray-700 text-center">
+                  <CardHeader>
+                    <Trophy className="h-8 w-8 mx-auto text-yellow-400 mb-2" />
+                    <CardTitle className="text-2xl text-white">#1</CardTitle>
+                    <CardDescription>Morocco Server</CardDescription>
+                  </CardHeader>
+                </Card>
+              </TiltCard>
+
+              <TiltCard>
+                <Card className="bg-gray-800/50 border-gray-700 text-center">
+                  <CardHeader>
+                    <Clock className="h-8 w-8 mx-auto text-purple-400 mb-2" />
+                    <CardTitle className="text-2xl text-white">2021</CardTitle>
+                    <CardDescription>Since Established</CardDescription>
+                  </CardHeader>
+                </Card>
+              </TiltCard>
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <AnimatedSection>
+            <h2 className="text-4xl font-bold text-center mb-16 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+              Why Choose United Server?
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <TiltCard>
+                <Card className="bg-gray-800/50 border-gray-700 h-full">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-white flex items-center">
+                      <Shield className="h-6 w-6 mr-2 text-blue-400" />
+                      Professional Staff
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-gray-300">
+                      Our experienced team ensures fair gameplay and maintains a friendly environment for all players.
+                    </CardDescription>
                   </CardContent>
                 </Card>
               </TiltCard>
-            </AnimatedSection>
 
-            <AnimatedSection animation="slideUp" delay={400}>
               <TiltCard>
-                <Card className="bg-gradient-to-br from-orange-900/20 to-orange-800/10 backdrop-blur-sm border border-orange-500/20 h-full hover:border-orange-500/40 transition-all duration-500 group">
-                  <CardContent className="p-8 text-center">
-                    <div className="relative mb-6">
-                      <Star className="h-16 w-16 text-orange-400 mx-auto group-hover:scale-110 transition-transform duration-500" />
-                      <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-4">Premium Quality</h3>
-                    <p className="text-gray-400 leading-relaxed">
-                      Custom scripts, unique features, and professional staff dedicated to providing the best RP
-                      experience.
-                    </p>
+                <Card className="bg-gray-800/50 border-gray-700 h-full">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-white flex items-center">
+                      <Users className="h-6 w-6 mr-2 text-green-400" />
+                      Active Community
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-gray-300">
+                      Join hundreds of active players in Morocco's most vibrant MTA roleplay community.
+                    </CardDescription>
                   </CardContent>
                 </Card>
               </TiltCard>
-            </AnimatedSection>
 
-            <AnimatedSection animation="slideUp" delay={600}>
               <TiltCard>
-                <Card className="bg-gradient-to-br from-orange-900/20 to-orange-800/10 backdrop-blur-sm border border-orange-500/20 h-full hover:border-orange-500/40 transition-all duration-500 group">
-                  <CardContent className="p-8 text-center">
-                    <div className="relative mb-6">
-                      <Zap className="h-16 w-16 text-orange-400 mx-auto group-hover:scale-110 transition-transform duration-500" />
-                      <div className="absolute inset-0 bg-orange-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-4">Active Community</h3>
-                    <p className="text-gray-400 leading-relaxed">
-                      Join hundreds of active players in events, competitions, and immersive roleplay scenarios daily.
-                    </p>
+                <Card className="bg-gray-800/50 border-gray-700 h-full">
+                  <CardHeader>
+                    <CardTitle className="text-xl text-white flex items-center">
+                      <Trophy className="h-6 w-6 mr-2 text-yellow-400" />
+                      Unique Features
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="text-gray-300">
+                      Experience custom scripts, unique jobs, and authentic Moroccan roleplay scenarios.
+                    </CardDescription>
                   </CardContent>
                 </Card>
               </TiltCard>
-            </AnimatedSection>
-          </div>
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto text-center">
+          <AnimatedSection>
+            <h2 className="text-4xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+              Ready to Start Your Journey?
+            </h2>
+            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+              Join thousands of players in Morocco's premier MTA roleplay server. Create your character, build your
+              story, and become part of our community.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 text-lg"
+                onClick={joinServer}
+              >
+                <ExternalLink className="mr-2 h-5 w-5" />
+                Join Now
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white px-8 py-3 text-lg bg-transparent"
+                onClick={joinDiscord}
+              >
+                <Users className="mr-2 h-5 w-5" />
+                Discord Community
+              </Button>
+            </div>
+          </AnimatedSection>
         </div>
       </section>
     </div>
