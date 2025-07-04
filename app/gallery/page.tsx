@@ -1,244 +1,257 @@
 "use client"
 
-import { Navigation } from "@/components/navigation"
-import { ProtectedPage } from "@/components/protected-page"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Heart, MessageCircle, Share2, Upload, Filter } from "lucide-react"
+import { Heart, MessageCircle, Share2, Upload, Filter, Eye } from "lucide-react"
 import Image from "next/image"
+import { useState } from "react"
 
 const galleryItems = [
   {
     id: 1,
     title: "Downtown Los Santos Sunset",
-    description: "Beautiful golden hour shot of the city skyline from Vinewood Hills",
     image: "/placeholder.jpg",
     category: "Screenshots",
     author: {
       name: "PlayerOne",
       avatar: "/placeholder-user.jpg",
     },
-    likes: 24,
-    comments: 8,
+    stats: {
+      likes: 24,
+      comments: 8,
+      views: 156,
+    },
     timestamp: "2 hours ago",
+    featured: true,
   },
   {
     id: 2,
-    title: "High Speed Police Chase",
-    description: "Intense pursuit through the winding mountain roads",
+    title: "Police Chase Through Mountains",
     image: "/placeholder.jpg",
     category: "Action",
     author: {
       name: "CopGamer",
       avatar: "/placeholder-user.jpg",
     },
-    likes: 31,
-    comments: 12,
+    stats: {
+      likes: 31,
+      comments: 12,
+      views: 203,
+    },
     timestamp: "5 hours ago",
+    featured: false,
   },
   {
     id: 3,
-    title: "Weekly Car Meet",
-    description: "Amazing turnout at this week's car show at Del Perro Pier",
+    title: "Weekly Car Meet at Pier",
     image: "/placeholder.jpg",
     category: "Events",
     author: {
       name: "CarLover",
       avatar: "/placeholder-user.jpg",
     },
-    likes: 45,
-    comments: 15,
+    stats: {
+      likes: 45,
+      comments: 15,
+      views: 289,
+    },
     timestamp: "1 day ago",
+    featured: true,
   },
   {
     id: 4,
-    title: "Grove Street Roleplay",
-    description: "Authentic gang roleplay scene in the heart of Los Santos",
+    title: "Grove Street Roleplay Scene",
     image: "/placeholder.jpg",
     category: "Roleplay",
     author: {
       name: "StreetKing",
       avatar: "/placeholder-user.jpg",
     },
-    likes: 18,
-    comments: 6,
+    stats: {
+      likes: 18,
+      comments: 6,
+      views: 134,
+    },
     timestamp: "1 day ago",
+    featured: false,
   },
   {
     id: 5,
     title: "Emergency Medical Response",
-    description: "Paramedics responding to a multi-vehicle accident",
     image: "/placeholder.jpg",
     category: "Roleplay",
     author: {
       name: "DocMike",
       avatar: "/placeholder-user.jpg",
     },
-    likes: 27,
-    comments: 9,
+    stats: {
+      likes: 27,
+      comments: 9,
+      views: 178,
+    },
     timestamp: "2 days ago",
+    featured: false,
   },
   {
     id: 6,
-    title: "Vespucci Beach Party",
-    description: "Community event brought together over 50 players!",
+    title: "Beach Party Community Event",
     image: "/placeholder.jpg",
     category: "Events",
     author: {
       name: "PartyPlanner",
       avatar: "/placeholder-user.jpg",
     },
-    likes: 62,
-    comments: 23,
+    stats: {
+      likes: 62,
+      comments: 23,
+      views: 445,
+    },
     timestamp: "3 days ago",
+    featured: true,
   },
 ]
 
-const categories = [
-  { name: "All", count: galleryItems.length },
-  { name: "Screenshots", count: galleryItems.filter((item) => item.category === "Screenshots").length },
-  { name: "Roleplay", count: galleryItems.filter((item) => item.category === "Roleplay").length },
-  { name: "Events", count: galleryItems.filter((item) => item.category === "Events").length },
-  { name: "Action", count: galleryItems.filter((item) => item.category === "Action").length },
-]
+const categories = ["All", "Screenshots", "Roleplay", "Events", "Action"]
 
 export default function GalleryPage() {
+  const [selectedCategory, setSelectedCategory] = useState("All")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+
+  const filteredItems =
+    selectedCategory === "All" ? galleryItems : galleryItems.filter((item) => item.category === selectedCategory)
+
   return (
-    <ProtectedPage title="Gallery">
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
-        <Navigation />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <Card className="max-w-2xl mx-auto">
-              <CardHeader>
-                <CardTitle className="text-3xl font-bold text-gray-900">
-                  Community <span className="text-orange-600">Gallery</span>
-                </CardTitle>
-                <CardDescription className="text-lg">
-                  Discover amazing screenshots, roleplay moments, and community events captured by our players.
-                </CardDescription>
-              </CardHeader>
-            </Card>
+    <DashboardLayout title="Gallery">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Community Gallery</h1>
+            <p className="text-gray-600 mt-2">Discover amazing screenshots and moments captured by our community.</p>
           </div>
+          <div className="mt-4 sm:mt-0">
+            <Button className="bg-orange-600 hover:bg-orange-700">
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Screenshot
+            </Button>
+          </div>
+        </div>
 
-          {/* Category Filter */}
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Filter by Category</h3>
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
-                </Button>
-              </div>
+        {/* Filters */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               <div className="flex flex-wrap gap-2">
                 {categories.map((category) => (
                   <Badge
-                    key={category.name}
-                    variant="outline"
-                    className="cursor-pointer hover:bg-orange-100 hover:border-orange-300 px-3 py-1"
+                    key={category}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    className={`cursor-pointer transition-colors ${
+                      selectedCategory === category
+                        ? "bg-orange-600 hover:bg-orange-700"
+                        : "hover:bg-orange-50 hover:border-orange-300"
+                    }`}
+                    onClick={() => setSelectedCategory(category)}
                   >
-                    {category.name} ({category.count})
+                    {category}
                   </Badge>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Gallery Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {galleryItems.map((item) => (
-              <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
-                <div className="relative aspect-video bg-gray-200">
-                  <Image src={item.image || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
-                  <div className="absolute top-3 right-3">
-                    <Badge className="bg-black/70 text-white">{item.category}</Badge>
-                  </div>
-                </div>
-
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={item.author.avatar || "/placeholder.svg"} alt={item.author.name} />
-                        <AvatarFallback className="text-xs">{item.author.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{item.author.name}</p>
-                        <p className="text-xs text-gray-500">{item.timestamp}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <h3 className="font-semibold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{item.description}</p>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <button className="flex items-center space-x-1 text-gray-500 hover:text-red-500 transition-colors">
-                        <Heart className="w-4 h-4" />
-                        <span className="text-sm">{item.likes}</span>
-                      </button>
-                      <button className="flex items-center space-x-1 text-gray-500 hover:text-blue-500 transition-colors">
-                        <MessageCircle className="w-4 h-4" />
-                        <span className="text-sm">{item.comments}</span>
-                      </button>
-                    </div>
-                    <button className="text-gray-500 hover:text-orange-500 transition-colors">
-                      <Share2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Upload Section */}
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold text-gray-900">Share Your Screenshots</CardTitle>
-              <CardDescription className="text-lg">
-                Captured an amazing moment in-game? Share it with the community and get featured!
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 bg-orange-50 rounded-lg">
-                  <Upload className="w-8 h-8 text-orange-600 mx-auto mb-3" />
-                  <h4 className="font-semibold text-orange-800 mb-2">Upload Guidelines</h4>
-                  <ul className="text-sm text-orange-700 space-y-1">
-                    <li>• High quality screenshots only</li>
-                    <li>• No inappropriate content</li>
-                    <li>• Include descriptive titles</li>
-                    <li>• Tag relevant categories</li>
-                  </ul>
-                </div>
-                <div className="p-6 bg-orange-50 rounded-lg">
-                  <Heart className="w-8 h-8 text-orange-600 mx-auto mb-3" />
-                  <h4 className="font-semibold text-orange-800 mb-2">Get Featured</h4>
-                  <ul className="text-sm text-orange-700 space-y-1">
-                    <li>• Best shots get pinned</li>
-                    <li>• Monthly contests</li>
-                    <li>• Community voting</li>
-                    <li>• Special recognition</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button className="bg-orange-600 hover:bg-orange-700">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Screenshot
+              <div className="flex items-center space-x-2">
+                <Button variant="outline" size="sm" onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}>
+                  <Filter className="h-4 w-4 mr-2" />
+                  {viewMode === "grid" ? "List View" : "Grid View"}
                 </Button>
-                <Button variant="outline">View Guidelines</Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Gallery */}
+        <div
+          className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"}`}
+        >
+          {filteredItems.map((item) => (
+            <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
+              <div className="relative">
+                <div className={`relative ${viewMode === "grid" ? "aspect-video" : "aspect-[21/9]"} bg-gray-200`}>
+                  <Image src={item.image || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
+                  {item.featured && (
+                    <div className="absolute top-3 left-3">
+                      <Badge className="bg-orange-600 text-white">Featured</Badge>
+                    </div>
+                  )}
+                  <div className="absolute top-3 right-3">
+                    <Badge variant="secondary" className="bg-black/70 text-white">
+                      {item.category}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={item.author.avatar || "/placeholder.svg"} alt={item.author.name} />
+                      <AvatarFallback className="text-xs bg-gray-200">{item.author.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{item.author.name}</p>
+                      <p className="text-xs text-gray-500">{item.timestamp}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <h3 className="font-semibold text-gray-900 mb-3">{item.title}</h3>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <button className="flex items-center space-x-1 text-gray-500 hover:text-red-500 transition-colors">
+                      <Heart className="h-4 w-4" />
+                      <span className="text-sm">{item.stats.likes}</span>
+                    </button>
+                    <button className="flex items-center space-x-1 text-gray-500 hover:text-blue-500 transition-colors">
+                      <MessageCircle className="h-4 w-4" />
+                      <span className="text-sm">{item.stats.comments}</span>
+                    </button>
+                    <div className="flex items-center space-x-1 text-gray-500">
+                      <Eye className="h-4 w-4" />
+                      <span className="text-sm">{item.stats.views}</span>
+                    </div>
+                  </div>
+                  <button className="text-gray-500 hover:text-orange-500 transition-colors">
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
+
+        {/* Upload Guidelines */}
+        <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <Upload className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Share Your Screenshots</h3>
+              <p className="text-gray-600 mb-4">
+                Captured an amazing moment? Share it with the community and get featured!
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-6">
+                <div>• High quality images only</div>
+                <div>• No inappropriate content</div>
+                <div>• Include descriptive titles</div>
+                <div>• Tag relevant categories</div>
+              </div>
+              <Button className="bg-blue-600 hover:bg-blue-700">Upload Your Screenshot</Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </ProtectedPage>
+    </DashboardLayout>
   )
 }

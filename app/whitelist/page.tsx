@@ -1,70 +1,101 @@
 "use client"
 
-import { Navigation } from "@/components/navigation"
-import { ProtectedPage } from "@/components/protected-page"
+import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle, Clock, FileText, Users, Shield, MessageSquare, AlertCircle } from "lucide-react"
+import {
+  CheckCircle,
+  Clock,
+  FileText,
+  Users,
+  Shield,
+  MessageSquare,
+  AlertCircle,
+  User,
+  Calendar,
+  Award,
+} from "lucide-react"
 
 const applicationSteps = [
   {
     step: 1,
-    title: "Join Discord Server",
-    description: "Connect with our community and access the whitelist application channel",
+    title: "Discord Registration",
+    description: "Join our Discord server and verify your account",
     icon: MessageSquare,
     status: "completed",
-    details: "You must be an active member of our Discord server to apply",
+    completedAt: "2024-01-15",
   },
   {
     step: 2,
-    title: "Read Server Rules",
-    description: "Thoroughly review our community guidelines and roleplay rules",
+    title: "Rules Acknowledgment",
+    description: "Read and acknowledge our server rules and guidelines",
     icon: FileText,
     status: "completed",
-    details: "Understanding our rules is essential for successful roleplay",
+    completedAt: "2024-01-15",
   },
   {
     step: 3,
-    title: "Submit Application",
-    description: "Complete the detailed whitelist application form",
+    title: "Application Submission",
+    description: "Submit your detailed whitelist application",
     icon: Shield,
     status: "current",
-    details: "Provide detailed character backstory and roleplay experience",
+    completedAt: null,
   },
   {
     step: 4,
     title: "Staff Review",
-    description: "Our team reviews your application and character concept",
+    description: "Our team reviews your application and background",
     icon: Users,
     status: "pending",
-    details: "Review process typically takes 3-5 business days",
+    completedAt: null,
   },
   {
     step: 5,
-    title: "Interview Process",
-    description: "Voice interview with staff to discuss your application",
-    icon: CheckCircle,
+    title: "Interview",
+    description: "Voice interview with our staff team",
+    icon: User,
     status: "pending",
-    details: "Final step before approval - showcase your roleplay skills",
+    completedAt: null,
   },
 ]
 
 const requirements = [
-  { text: "Must be 16+ years old", met: true },
-  { text: "Have a working microphone", met: true },
-  { text: "Speak fluent English", met: true },
-  { text: "No recent bans from RP servers", met: true },
-  { text: "Discord account in good standing", met: true },
-  { text: "Commit to quality roleplay", met: false },
+  { text: "Must be 16+ years old", met: true, required: true },
+  { text: "Working microphone required", met: true, required: true },
+  { text: "Fluent English speaker", met: true, required: true },
+  { text: "Clean record on other RP servers", met: true, required: true },
+  { text: "Active Discord account", met: true, required: true },
+  { text: "Completed character backstory", met: false, required: true },
+  { text: "Previous RP experience", met: false, required: false },
 ]
 
 const applicationStats = [
-  { label: "Applications This Month", value: "127", change: "+12%" },
-  { label: "Average Processing Time", value: "4.2 days", change: "-0.8 days" },
-  { label: "Approval Rate", value: "68%", change: "+5%" },
-  { label: "Active Whitelisted Players", value: "1,247", change: "+23" },
+  {
+    title: "Your Application Status",
+    value: "In Progress",
+    description: "Step 3 of 5",
+    icon: Clock,
+    color: "text-orange-600",
+    bgColor: "bg-orange-100",
+  },
+  {
+    title: "Processing Time",
+    value: "3-5 Days",
+    description: "Average review time",
+    icon: Calendar,
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+  },
+  {
+    title: "Success Rate",
+    value: "68%",
+    description: "Monthly approval rate",
+    icon: Award,
+    color: "text-green-600",
+    bgColor: "bg-green-100",
+  },
 ]
 
 export default function WhitelistPage() {
@@ -72,194 +103,195 @@ export default function WhitelistPage() {
   const progressPercentage = (completedSteps / applicationSteps.length) * 100
 
   return (
-    <ProtectedPage title="Whitelist Application">
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
-        <Navigation />
+    <DashboardLayout title="Whitelist Application">
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Whitelist Application</h1>
+          <p className="text-gray-600 mt-2">Complete your application to join our exclusive roleplay community.</p>
+        </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <Card className="max-w-2xl mx-auto">
-              <CardHeader>
-                <CardTitle className="text-3xl font-bold text-gray-900">
-                  Whitelist <span className="text-orange-600">Application</span>
-                </CardTitle>
-                <CardDescription className="text-lg">
-                  Join our exclusive roleplay community. Our whitelist process ensures we maintain the highest quality
-                  roleplay environment.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
+        {/* Progress Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {applicationStats.map((stat, index) => {
+            const IconComponent = stat.icon
+            return (
+              <Card key={index}>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <div className={`${stat.bgColor} rounded-lg p-3 mr-4`}>
+                      <IconComponent className={`h-6 w-6 ${stat.color}`} />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                      <p className="text-sm font-medium text-gray-900">{stat.title}</p>
+                      <p className="text-xs text-gray-500">{stat.description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
 
-          {/* Application Progress */}
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl">Your Application Progress</CardTitle>
-                <Badge variant="outline" className="text-orange-600 border-orange-600">
-                  Step {completedSteps + 1} of {applicationSteps.length}
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                <Progress value={progressPercentage} className="h-2" />
-                <p className="text-sm text-gray-600">{Math.round(progressPercentage)}% Complete</p>
-              </div>
-            </CardHeader>
-          </Card>
-
-          {/* Application Steps */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Application Progress */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Application Progress</CardTitle>
+              <Badge variant="outline" className="text-orange-600 border-orange-600">
+                {completedSteps} of {applicationSteps.length} completed
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              <Progress value={progressPercentage} className="h-2" />
+              <p className="text-sm text-gray-600">{Math.round(progressPercentage)}% Complete</p>
+            </div>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Application Process</h2>
               {applicationSteps.map((step) => {
                 const IconComponent = step.icon
-                const getStatusColor = (status: string) => {
+                const getStatusStyles = (status: string) => {
                   switch (status) {
                     case "completed":
-                      return "text-green-600 bg-green-100"
+                      return {
+                        iconBg: "bg-green-100",
+                        iconColor: "text-green-600",
+                        border: "border-green-200",
+                      }
                     case "current":
-                      return "text-orange-600 bg-orange-100"
-                    case "pending":
-                      return "text-gray-400 bg-gray-100"
+                      return {
+                        iconBg: "bg-orange-100",
+                        iconColor: "text-orange-600",
+                        border: "border-orange-200",
+                      }
                     default:
-                      return "text-gray-400 bg-gray-100"
+                      return {
+                        iconBg: "bg-gray-100",
+                        iconColor: "text-gray-400",
+                        border: "border-gray-200",
+                      }
                   }
                 }
 
+                const styles = getStatusStyles(step.status)
+
                 return (
-                  <Card key={step.step} className={`${step.status === "current" ? "ring-2 ring-orange-200" : ""}`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start space-x-4">
-                        <div className={`rounded-full p-2 ${getStatusColor(step.status)}`}>
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-gray-900">
-                              Step {step.step}: {step.title}
-                            </h3>
-                            {step.status === "completed" && <CheckCircle className="w-5 h-5 text-green-600" />}
-                            {step.status === "current" && <Clock className="w-5 h-5 text-orange-600" />}
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">{step.description}</p>
-                          <p className="text-xs text-gray-500">{step.details}</p>
-                        </div>
+                  <div key={step.step} className={`border rounded-lg p-4 ${styles.border}`}>
+                    <div className="flex items-start space-x-4">
+                      <div className={`${styles.iconBg} rounded-full p-2`}>
+                        <IconComponent className={`h-5 w-5 ${styles.iconColor}`} />
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-semibold text-gray-900">
+                            Step {step.step}: {step.title}
+                          </h3>
+                          <div className="flex items-center space-x-2">
+                            {step.status === "completed" && (
+                              <>
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                <span className="text-xs text-gray-500">{step.completedAt}</span>
+                              </>
+                            )}
+                            {step.status === "current" && <Clock className="h-4 w-4 text-orange-600" />}
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600">{step.description}</p>
+                        {step.status === "current" && (
+                          <div className="mt-3">
+                            <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                              Continue Application
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )
               })}
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Requirements & Stats */}
-            <div className="space-y-6">
-              {/* Requirements */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <FileText className="w-5 h-5 mr-2 text-orange-600" />
-                    Requirements Checklist
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {requirements.map((requirement, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          {requirement.met ? (
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <AlertCircle className="w-4 h-4 text-orange-500" />
-                          )}
-                          <span className={`text-sm ${requirement.met ? "text-gray-700" : "text-orange-700"}`}>
-                            {requirement.text}
-                          </span>
-                        </div>
-                        <Badge variant={requirement.met ? "default" : "secondary"} className="text-xs">
-                          {requirement.met ? "Met" : "Pending"}
+        {/* Requirements */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FileText className="h-5 w-5 mr-2 text-orange-600" />
+              Requirements Checklist
+            </CardTitle>
+            <CardDescription>Make sure you meet all requirements before submitting your application.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {requirements.map((requirement, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    {requirement.met ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-orange-500" />
+                    )}
+                    <div>
+                      <span className={`text-sm font-medium ${requirement.met ? "text-gray-700" : "text-orange-700"}`}>
+                        {requirement.text}
+                      </span>
+                      {requirement.required && (
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          Required
                         </Badge>
-                      </div>
-                    ))}
+                      )}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Application Stats */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Application Statistics</CardTitle>
-                  <CardDescription>Current whitelist metrics and processing times</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    {applicationStats.map((stat, index) => (
-                      <div key={index} className="text-center p-3 bg-orange-50 rounded-lg">
-                        <p className="text-2xl font-bold text-orange-600">{stat.value}</p>
-                        <p className="text-xs text-gray-600 mb-1">{stat.label}</p>
-                        <Badge variant="outline" className="text-xs">
-                          {stat.change}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                  <Badge
+                    variant={requirement.met ? "default" : "secondary"}
+                    className={requirement.met ? "bg-green-100 text-green-800" : ""}
+                  >
+                    {requirement.met ? "Met" : "Pending"}
+                  </Badge>
+                </div>
+              ))}
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Application CTA */}
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold text-gray-900">Ready to Begin Your Journey?</CardTitle>
-              <CardDescription className="text-lg">
-                Start your whitelist application today and join our thriving roleplay community.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-orange-50 rounded-lg">
-                  <MessageSquare className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                  <h4 className="font-semibold text-orange-800 mb-1">Join Discord</h4>
-                  <p className="text-sm text-orange-700">Connect with our community first</p>
-                </div>
-                <div className="p-4 bg-orange-50 rounded-lg">
-                  <FileText className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                  <h4 className="font-semibold text-orange-800 mb-1">Complete Application</h4>
-                  <p className="text-sm text-orange-700">Detailed character and background info</p>
-                </div>
-                <div className="p-4 bg-orange-50 rounded-lg">
-                  <CheckCircle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-                  <h4 className="font-semibold text-orange-800 mb-1">Get Approved</h4>
-                  <p className="text-sm text-orange-700">Join our whitelisted community</p>
-                </div>
+        {/* Application Form */}
+        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+          <CardHeader>
+            <CardTitle className="text-center">Ready to Continue?</CardTitle>
+            <CardDescription className="text-center">
+              Complete your whitelist application to join our community.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 bg-white rounded-lg">
+                <MessageSquare className="h-8 w-8 text-orange-600 mx-auto mb-3" />
+                <h4 className="font-semibold text-gray-900 mb-2">Discord Application</h4>
+                <p className="text-sm text-gray-600 mb-3">
+                  Complete your application through our Discord server for the fastest processing.
+                </p>
+                <Button className="bg-orange-600 hover:bg-orange-700 w-full">Continue on Discord</Button>
               </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button className="bg-orange-600 hover:bg-orange-700" size="lg">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Start Application on Discord
-                </Button>
-                <Button variant="outline" size="lg">
-                  <FileText className="w-4 h-4 mr-2" />
-                  View Application Form
+              <div className="p-4 bg-white rounded-lg">
+                <FileText className="h-8 w-8 text-orange-600 mx-auto mb-3" />
+                <h4 className="font-semibold text-gray-900 mb-2">Web Application</h4>
+                <p className="text-sm text-gray-600 mb-3">
+                  Prefer to complete your application here? Use our web form instead.
+                </p>
+                <Button variant="outline" className="w-full bg-transparent">
+                  Web Application Form
                 </Button>
               </div>
-
-              <div className="flex justify-center space-x-4">
-                <Badge variant="outline" className="text-sm">
-                  <Clock className="w-3 h-3 mr-1" />
-                  Average processing: 4.2 days
-                </Badge>
-                <Badge variant="outline" className="text-sm">
-                  <Users className="w-3 h-3 mr-1" />
-                  68% approval rate
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+            <div className="text-xs text-gray-500">
+              <p>Need help? Contact our support team on Discord or email support@united-rp.com</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </ProtectedPage>
+    </DashboardLayout>
   )
 }
