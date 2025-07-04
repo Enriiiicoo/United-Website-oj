@@ -17,10 +17,10 @@ const staffMembers = [
     avatar: "/placeholder-user.jpg",
     discordTag: "Owner#0001",
     email: "owner@united-rp.com",
-    joinDate: "January 2023",
+    joinDate: "January 2024",
     icon: Crown,
     badgeColor: "bg-yellow-500",
-    textColor: "text-yellow-600",
+    textColor: "text-yellow-400",
   },
   {
     id: 2,
@@ -32,10 +32,10 @@ const staffMembers = [
     avatar: "/placeholder-user.jpg",
     discordTag: "HeadAdmin#0002",
     email: "headadmin@united-rp.com",
-    joinDate: "February 2023",
+    joinDate: "February 2024",
     icon: Shield,
     badgeColor: "bg-red-500",
-    textColor: "text-red-600",
+    textColor: "text-red-400",
   },
   {
     id: 3,
@@ -46,10 +46,10 @@ const staffMembers = [
     avatar: "/placeholder-user.jpg",
     discordTag: "Admin#0003",
     email: "admin@united-rp.com",
-    joinDate: "March 2023",
+    joinDate: "March 2024",
     icon: Shield,
     badgeColor: "bg-blue-500",
-    textColor: "text-blue-600",
+    textColor: "text-blue-400",
   },
   {
     id: 4,
@@ -60,10 +60,10 @@ const staffMembers = [
     avatar: "/placeholder-user.jpg",
     discordTag: "Mod#0004",
     email: "mod1@united-rp.com",
-    joinDate: "April 2023",
+    joinDate: "April 2024",
     icon: Star,
     badgeColor: "bg-green-500",
-    textColor: "text-green-600",
+    textColor: "text-green-400",
   },
   {
     id: 5,
@@ -74,10 +74,10 @@ const staffMembers = [
     avatar: "/placeholder-user.jpg",
     discordTag: "Mod#0005",
     email: "mod2@united-rp.com",
-    joinDate: "May 2023",
+    joinDate: "May 2024",
     icon: Star,
     badgeColor: "bg-green-500",
-    textColor: "text-green-600",
+    textColor: "text-green-400",
   },
   {
     id: 6,
@@ -88,10 +88,10 @@ const staffMembers = [
     avatar: "/placeholder-user.jpg",
     discordTag: "Support#0006",
     email: "support@united-rp.com",
-    joinDate: "June 2023",
+    joinDate: "June 2024",
     icon: Users,
     badgeColor: "bg-purple-500",
-    textColor: "text-purple-600",
+    textColor: "text-purple-400",
   },
 ]
 
@@ -101,8 +101,8 @@ export default function StaffPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Staff Team</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-white">Staff Team</h1>
+          <p className="text-gray-400 mt-2">
             Meet our dedicated team of administrators and moderators who keep United Roleplay running smoothly.
           </p>
         </div>
@@ -112,13 +112,16 @@ export default function StaffPage() {
           {staffMembers.map((member) => {
             const IconComponent = member.icon
             return (
-              <Card key={member.id} className="hover:shadow-lg transition-shadow duration-200">
+              <Card
+                key={member.id}
+                className="bg-gray-900 border-gray-700 hover:bg-gray-800 transition-colors duration-200"
+              >
                 <CardHeader className="pb-4">
                   <div className="flex items-center space-x-4">
                     <div className="relative">
                       <Avatar className="h-16 w-16">
                         <AvatarImage src={member.avatar || "/placeholder.svg"} alt={member.name} />
-                        <AvatarFallback className="text-lg bg-gray-200">
+                        <AvatarFallback className="text-lg bg-gray-700 text-white">
                           {member.name
                             .split(" ")
                             .map((n) => n[0])
@@ -130,7 +133,7 @@ export default function StaffPage() {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <CardTitle className="text-lg">{member.name}</CardTitle>
+                      <CardTitle className="text-lg text-white">{member.name}</CardTitle>
                       <Badge className={`${member.badgeColor} text-white mt-1`}>{member.rank}</Badge>
                     </div>
                   </div>
@@ -138,7 +141,9 @@ export default function StaffPage() {
                 <CardContent className="space-y-4">
                   <div>
                     <p className={`text-sm font-medium ${member.textColor}`}>{member.role}</p>
-                    <CardDescription className="text-sm mt-1 leading-relaxed">{member.description}</CardDescription>
+                    <CardDescription className="text-sm mt-1 leading-relaxed text-gray-400">
+                      {member.description}
+                    </CardDescription>
                   </div>
 
                   <div className="space-y-2 text-xs text-gray-500">
@@ -162,39 +167,39 @@ export default function StaffPage() {
         </div>
 
         {/* Application Section */}
-        <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+        <Card className="bg-gradient-to-r from-orange-900 to-red-900 border-orange-700">
           <CardHeader>
-            <CardTitle className="text-2xl text-center">Join Our Staff Team</CardTitle>
-            <CardDescription className="text-center text-lg">
+            <CardTitle className="text-2xl text-center text-white">Join Our Staff Team</CardTitle>
+            <CardDescription className="text-center text-lg text-orange-200">
               Interested in helping our community grow? We're always looking for dedicated members.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <Shield className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <h4 className="font-semibold text-gray-900 mb-2">Requirements</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
+              <div className="text-center p-4 bg-black/30 rounded-lg">
+                <Shield className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+                <h4 className="font-semibold text-white mb-2">Requirements</h4>
+                <ul className="text-sm text-gray-300 space-y-1">
                   <li>• 18+ years old</li>
                   <li>• Active community member</li>
                   <li>• Clean record</li>
                   <li>• Available 15+ hours/week</li>
                 </ul>
               </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <Users className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <h4 className="font-semibold text-gray-900 mb-2">Responsibilities</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
+              <div className="text-center p-4 bg-black/30 rounded-lg">
+                <Users className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+                <h4 className="font-semibold text-white mb-2">Responsibilities</h4>
+                <ul className="text-sm text-gray-300 space-y-1">
                   <li>• Help new players</li>
                   <li>• Enforce server rules</li>
                   <li>• Handle reports</li>
                   <li>• Moderate chat/voice</li>
                 </ul>
               </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <Star className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                <h4 className="font-semibold text-gray-900 mb-2">Benefits</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
+              <div className="text-center p-4 bg-black/30 rounded-lg">
+                <Star className="h-8 w-8 text-orange-400 mx-auto mb-2" />
+                <h4 className="font-semibold text-white mb-2">Benefits</h4>
+                <ul className="text-sm text-gray-300 space-y-1">
                   <li>• Staff permissions</li>
                   <li>• Exclusive channels</li>
                   <li>• Recognition</li>
@@ -203,7 +208,9 @@ export default function StaffPage() {
               </div>
             </div>
             <div className="text-center">
-              <Button className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-2">Apply on Discord</Button>
+              <Button className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-8 py-2">
+                Apply on Discord
+              </Button>
             </div>
           </CardContent>
         </Card>
