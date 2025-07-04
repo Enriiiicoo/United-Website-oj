@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { MessageSquare, Shield, Gamepad2 } from "lucide-react"
@@ -6,24 +6,7 @@ import { MessageSquare, Shield, Gamepad2 } from "lucide-react"
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-orange-600">United Roleplay</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/auth/signin">
-                <Button variant="outline">Sign In</Button>
-              </Link>
-              <Link href="/auth/signup">
-                <Button className="bg-orange-600 hover:bg-orange-700">Join Now</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -36,12 +19,12 @@ export default function HomePage() {
           </p>
           <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
             <div className="rounded-md shadow">
-              <Link href="/auth/signup">
+              <a href="/auth/signup">
                 <Button className="w-full flex items-center justify-center px-8 py-3 text-base font-medium bg-orange-600 hover:bg-orange-700">
                   <MessageSquare className="w-5 h-5 mr-2" />
                   Get Started
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -87,17 +70,17 @@ export default function HomePage() {
               Create your account now and become part of the United Roleplay community.
             </p>
             <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth/signup">
+              <a href="/auth/signup">
                 <Button className="bg-orange-600 hover:bg-orange-700 px-8 py-3">
                   <MessageSquare className="w-5 h-5 mr-2" />
                   Sign Up with Discord
                 </Button>
-              </Link>
-              <Link href="/auth/signin">
+              </a>
+              <a href="/auth/signin">
                 <Button variant="outline" className="px-8 py-3 bg-transparent">
                   Already have an account?
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>

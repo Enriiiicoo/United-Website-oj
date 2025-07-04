@@ -1,210 +1,290 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { signOut } from "next-auth/react"
-import { LogOut, User, Mail, MessageSquare, Gamepad2, CheckCircle, Loader2, Home } from "lucide-react"
-import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { User, Shield, Gamepad2, MessageSquare, Settings, ExternalLink } from "lucide-react"
 
 interface UserProfile {
-  id: number
-  username: string
+  id: string
+  name: string
   email: string
+  image: string
   discordId: string
-  discordUsername: string
-  avatarUrl?: string
-  isVerified: boolean
-  isActive: boolean
-  createdAt: string
-  gameAccount?: {
-    id: number
-    username: string
-    email: string
-    registerDate: string
-  }
+  gameUsername?: string
+  whitelistStatus: "pending" | "approved" | "denied"
+  joinedAt: string
 }
 
 export default function DashboardPage() {
   const { data: session, status } = useSession()
-  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const router = useRouter()
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Add debugging
   useEffect(() => {
-    console.log("🔍 Dashboard - Session status:", status)
-    console.log("📝 Dashboard - Session data:", JSON.stringify(session, null, 2))
-  }, [session, status])
-
-  useEffect(() => {
-    console.log("🔍 Dashboard - Session status:", status)
-    console.log("📝 Dashboard - Session data:", JSON.stringify(session, null, 2))
+    console.log("Dashboard - Session status:", status)
+    console.log("Dashboard - Session data:", session)
 
     if (status === "loading") {
-      console.log("⏳ Dashboard - Session still loading...")
+      console.log("Dashboard - Session still loading...")
       return
     }
 
-    if (!session?.user?.discordId) {
-      console.log("❌ Dashboard - No Discord ID found, redirecting to signin")
-      console.log("❌ Dashboard - Session:", session)
-      console.log("❌ Dashboard - User:", session?.user)
-      // Redirect to signin instead of home page
-      window.location.href = "/auth/signin"
+    if (status === "unauthenticated") {
+      console.log("Dashboard - User not authenticated, redirecting to signin")
+      router.push("/auth/signin")
       return
     }
 
-    console.log("✅ Dashboard - Valid session found, fetching profile")
-    fetchProfile()
-  }, [session, status])
+    if (session?.user) {
+      console.log("Dashboard - User authenticated, fetching profile")
+      fetchUserProfile()
+    }
+  }, [session, status, router])
 
-  const fetchProfile = async () => {
+  const fetchUserProfile = async () => {
     try {
       const response = await fetch("/api/user/profile")
       if (response.ok) {
-        const data = await response.json()
-        setProfile(data.user)
+        const profile = await response.json()
+        console.log("Dashboard - Profile fetched:", profile)
+        setUserProfile(profile)
+      } else {
+        console.error("Dashboard - Failed to fetch profile:", response.status)
       }
     } catch (error) {
-      console.error("Failed to fetch profile:", error)
+      console.error("Dashboard - Error fetching profile:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  if (!session) {
+  if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <p>Please sign in to access the dashboard.</p>
-            <Link href="/">
-              <Button variant="outline" className="w-full bg-transparent">
-                <Home className="w-4 h-4 mr-2" />
-                Go Home
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+        <Navigation />
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading your dashboard...</p>
+          </div>
+        </div>
       </div>
     )
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Loading your profile...</p>
-          <Link href="/">
-            <Button variant="outline">
-              <Home className="w-4 h-4 mr-2" />
-              Go Home
-            </Button>
-          </Link>
-        </div>
-      </div>
-    )
+  if (!session) {
+    return null // Will redirect in useEffect
+  }
+
+  const getWhitelistStatusColor = (status: string) => {
+    switch (status) {
+      case "approved":
+        return "bg-green-100 text-green-800"
+      case "pending":
+        return "bg-yellow-100 text-yellow-800"
+      case "denied":
+        return "bg-red-100 text-red-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4">
-      {/* Navigation Bar */}
-      <nav className="max-w-2xl mx-auto mb-6">
-        <div className="flex justify-between items-center">
-          <Link href="/">
-            <Button variant="outline" className="bg-white">
-              <Home className="w-4 h-4 mr-2" />
-              Home
-            </Button>
-          </Link>
-          <h1 className="text-xl font-bold text-orange-600">Dashboard</h1>
-          <div></div> {/* Spacer for centering */}
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+      <Navigation />
 
-      <div className="max-w-2xl mx-auto space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl text-orange-600">Welcome to United Roleplay</CardTitle>
-            <CardDescription>
-              {profile ? "Your account is active and verified!" : "Complete your profile setup"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center space-x-4">
-              {session.user.image && (
-                <img src={session.user.image || "/placeholder.svg"} alt="Profile" className="w-16 h-16 rounded-full" />
-              )}
-              <div>
-                <h3 className="text-lg font-semibold">{profile?.username || session.user.name}</h3>
-                <p className="text-gray-600">{profile?.email || session.user.email}</p>
-                {profile?.isVerified && (
-                  <div className="flex items-center text-green-600 text-sm">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    Verified Account
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Welcome back, <span className="text-orange-600">{session.user?.name}</span>!
+          </h1>
+          <p className="text-gray-600 mt-2">Manage your United Roleplay account and settings</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Card */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader className="text-center">
+                <Avatar className="w-24 h-24 mx-auto mb-4">
+                  <AvatarImage src={session.user?.image || ""} alt={session.user?.name || ""} />
+                  <AvatarFallback>
+                    {session.user?.name
+                      ?.split(" ")
+                      .map((n) => n[0])
+                      .join("") || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <CardTitle>{session.user?.name}</CardTitle>
+                <CardDescription>{session.user?.email}</CardDescription>
+                {userProfile && (
+                  <Badge className={getWhitelistStatusColor(userProfile.whitelistStatus)}>
+                    {userProfile.whitelistStatus.charAt(0).toUpperCase() + userProfile.whitelistStatus.slice(1)}
+                  </Badge>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Discord Connected</span>
+                  <Badge variant="outline" className="text-green-600 border-green-600">
+                    <MessageSquare className="w-3 h-3 mr-1" />
+                    Connected
+                  </Badge>
+                </div>
+                {userProfile?.gameUsername && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Game Account</span>
+                    <Badge variant="outline">
+                      <Gamepad2 className="w-3 h-3 mr-1" />
+                      {userProfile.gameUsername}
+                    </Badge>
                   </div>
                 )}
-              </div>
-            </div>
+                <Button className="w-full bg-transparent" variant="outline">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
-            <div className="grid gap-4">
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                <User className="w-5 h-5 text-gray-600" />
-                <div>
-                  <p className="font-medium">Username</p>
-                  <p className="text-sm text-gray-600">{profile?.username || session.user.name}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                <Mail className="w-5 h-5 text-gray-600" />
-                <div>
-                  <p className="font-medium">Email</p>
-                  <p className="text-sm text-gray-600">{profile?.email || session.user.email}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                <MessageSquare className="w-5 h-5 text-gray-600" />
-                <div>
-                  <p className="font-medium">Discord</p>
-                  <p className="text-sm text-gray-600">{profile?.discordUsername || session.user.name}</p>
-                  <p className="text-xs text-green-600">✓ Connected & Verified</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                <Gamepad2 className="w-5 h-5 text-gray-600" />
-                <div className="flex-1">
-                  <p className="font-medium">Game Account</p>
-                  {profile?.gameAccount ? (
-                    <div>
-                      <p className="text-sm text-gray-600">Username: {profile.gameAccount.username}</p>
-                      <p className="text-sm text-gray-600">Email: {profile.gameAccount.email}</p>
-                      <p className="text-sm text-gray-600">
-                        Registered: {new Date(profile.gameAccount.registerDate).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-green-600">✓ Linked & Verified</p>
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Shield className="w-5 h-5 mr-2 text-orange-600" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Button className="justify-start h-auto p-4 bg-transparent" variant="outline">
+                    <div className="text-left">
+                      <div className="font-medium">Link Game Account</div>
+                      <div className="text-sm text-gray-500">Connect your in-game character</div>
                     </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">Not linked</p>
+                  </Button>
+                  <Button className="justify-start h-auto p-4 bg-transparent" variant="outline">
+                    <div className="text-left">
+                      <div className="font-medium">Whitelist Status</div>
+                      <div className="text-sm text-gray-500">Check application progress</div>
+                    </div>
+                  </Button>
+                  <Button className="justify-start h-auto p-4 bg-transparent" variant="outline">
+                    <div className="text-left">
+                      <div className="font-medium">Support Ticket</div>
+                      <div className="text-sm text-gray-500">Get help from staff</div>
+                    </div>
+                  </Button>
+                  <Button className="justify-start h-auto p-4 bg-transparent" variant="outline">
+                    <div className="text-left">
+                      <div className="font-medium">Community Events</div>
+                      <div className="text-sm text-gray-500">View upcoming events</div>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Account Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <User className="w-5 h-5 mr-2 text-orange-600" />
+                  Account Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center">
+                      <MessageSquare className="w-5 h-5 text-green-600 mr-3" />
+                      <div>
+                        <p className="font-medium text-green-800">Discord Account</p>
+                        <p className="text-sm text-green-600">Successfully connected</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-green-100 text-green-800">Active</Badge>
+                  </div>
+
+                  {userProfile?.whitelistStatus === "pending" && (
+                    <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                      <div className="flex items-center">
+                        <Shield className="w-5 h-5 text-yellow-600 mr-3" />
+                        <div>
+                          <p className="font-medium text-yellow-800">Whitelist Application</p>
+                          <p className="text-sm text-yellow-600">Under review by staff</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+                    </div>
+                  )}
+
+                  {userProfile?.whitelistStatus === "approved" && (
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center">
+                        <Shield className="w-5 h-5 text-green-600 mr-3" />
+                        <div>
+                          <p className="font-medium text-green-800">Whitelist Status</p>
+                          <p className="text-sm text-green-600">Approved - Welcome to the server!</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-green-100 text-green-800">Approved</Badge>
+                    </div>
+                  )}
+
+                  {!userProfile?.gameUsername && (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center">
+                        <Gamepad2 className="w-5 h-5 text-blue-600 mr-3" />
+                        <div>
+                          <p className="font-medium text-blue-800">Game Account</p>
+                          <p className="text-sm text-blue-600">Link your in-game character</p>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline">
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        Link Now
+                      </Button>
+                    </div>
                   )}
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <Button onClick={() => signOut({ callbackUrl: "/" })} variant="outline" className="w-full">
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-          </CardContent>
-        </Card>
+            {/* Recent Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Your latest actions and updates</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3 text-sm">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-gray-600">Account created successfully</span>
+                    <span className="text-gray-400 ml-auto">Just now</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-sm">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-gray-600">Discord account connected</span>
+                    <span className="text-gray-400 ml-auto">Just now</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   )
