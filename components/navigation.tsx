@@ -1,80 +1,94 @@
 "use client"
 
-import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Home, Users, ImageIcon, FileText, Shield, LogOut } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Home, Users, ImageIcon, FileText, LogOut, User } from "lucide-react"
 
 export function Navigation() {
   const { data: session } = useSession()
 
   return (
-    <nav className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center space-x-8">
-            <Link href="/" className="flex items-center">
-              <h1 className="text-xl font-bold text-orange-600">United Roleplay</h1>
-            </Link>
-            <div className="hidden md:flex items-center space-x-4">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <Home className="w-4 h-4 mr-2" />
-                  Home
-                </Button>
+    <nav className="bg-white border-b border-gray-200 px-4 py-3">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="flex items-center space-x-8">
+          <Link href="/" className="text-xl font-bold text-orange-600">
+            United RP
+          </Link>
+
+          {session && (
+            <div className="hidden md:flex items-center space-x-6">
+              <Link
+                href="/dashboard"
+                className="flex items-center text-gray-600 hover:text-orange-600 transition-colors"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Dashboard
               </Link>
-              <Link href="/staff">
-                <Button variant="ghost" size="sm">
-                  <Users className="w-4 h-4 mr-2" />
-                  Staff
-                </Button>
+              <Link href="/staff" className="flex items-center text-gray-600 hover:text-orange-600 transition-colors">
+                <Users className="w-4 h-4 mr-2" />
+                Staff
               </Link>
-              <Link href="/gallery">
-                <Button variant="ghost" size="sm">
-                  <ImageIcon className="w-4 h-4 mr-2" />
-                  Gallery
-                </Button>
+              <Link href="/gallery" className="flex items-center text-gray-600 hover:text-orange-600 transition-colors">
+                <ImageIcon className="w-4 h-4 mr-2" />
+                Gallery
               </Link>
-              <Link href="/whitelist">
-                <Button variant="ghost" size="sm">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Whitelist
-                </Button>
+              <Link
+                href="/whitelist"
+                className="flex items-center text-gray-600 hover:text-orange-600 transition-colors"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Whitelist
               </Link>
-              {session && (
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm">
-                    <Shield className="w-4 h-4 mr-2" />
-                    Dashboard
-                  </Button>
-                </Link>
-              )}
             </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            {session ? (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">Welcome, {session.user?.name}</span>
-                <Button variant="outline" size="sm" onClick={() => signOut()}>
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
+          )}
+        </div>
+
+        <div className="flex items-center space-x-4">
+          {session ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={session.user?.image || ""} alt={session.user?.name || ""} />
+                    <AvatarFallback>{session.user?.name?.charAt(0) || "U"}</AvatarFallback>
+                  </Avatar>
                 </Button>
-              </div>
-            ) : (
-              <>
-                <Link href="/auth/signin">
-                  <Button variant="outline" size="sm">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link href="/auth/signup">
-                  <Button className="bg-orange-600 hover:bg-orange-700" size="sm">
-                    Join Now
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    <p className="font-medium">{session.user?.name}</p>
+                    <p className="w-[200px] truncate text-sm text-muted-foreground">{session.user?.email}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard">
+                    <User className="mr-2 h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="cursor-pointer" onSelect={() => signOut({ callbackUrl: "/" })}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/auth/signin">
+              <Button className="bg-orange-600 hover:bg-orange-700">Sign In</Button>
+            </Link>
+          )}
         </div>
       </div>
     </nav>
