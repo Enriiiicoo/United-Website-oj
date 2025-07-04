@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { executeQuery } from "@/lib/mysql"
+import { executeQuery, queryRow } from "@/lib/mysql"
 import { isAdmin } from "@/lib/admin"
 
 export async function GET() {
@@ -9,11 +9,11 @@ export async function GET() {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.discordId || !isAdmin(session.user.discordId)) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 })
     }
 
     // Get whitelist entries with verification status
-    const entries = await executeQuery(`
+    const whitelist = await executeQuery(`
       SELECT 
         w.mta_serial,
         w.discord_id,
@@ -25,51 +25,45 @@ export async function GET() {
           WHEN v.expires_at > NOW() THEN 'verified'
           WHEN v.expires_at <= NOW() THEN 'expired'
           ELSE 'pending'
-        END as verified_status,
-        w.mta_serial as id
+        END as verification_status,
+        FALSE as is_online
       FROM mta_whitelist w
-      LEFT JOIN users u ON w.discord_id = u.discord_id
+      LEFT JOIN website_users u ON w.discord_id = u.discord_id
       LEFT JOIN mta_verifications v ON w.discord_id = v.discord_id
       LEFT JOIN permanent_verifications pv ON w.discord_id = pv.discord_id
       ORDER BY w.added_at DESC
     `)
 
-    // Get stats
-    const statsQuery = await executeQuery(`
+    // Get applications
+    const applications = await executeQuery(`
       SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN pv.discord_id IS NOT NULL OR v.expires_at > NOW() THEN 1 ELSE 0 END) as verified,
-        SUM(CASE WHEN v.expires_at <= NOW() AND pv.discord_id IS NULL THEN 1 ELSE 0 END) as expired,
-        SUM(CASE WHEN v.discord_id IS NULL AND pv.discord_id IS NULL THEN 1 ELSE 0 END) as pending
-      FROM mta_whitelist w
-      LEFT JOIN mta_verifications v ON w.discord_id = v.discord_id
-      LEFT JOIN permanent_verifications pv ON w.discord_id = pv.discord_id
+        wa.*,
+        u.discord_username
+      FROM whitelist_applications wa
+      LEFT JOIN website_users u ON wa.discord_id = u.discord_id
+      ORDER BY wa.submitted_at DESC
     `)
 
-    const stats =
-      Array.isArray(statsQuery) && statsQuery.length > 0
-        ? statsQuery[0]
-        : {
-            total: 0,
-            verified: 0,
-            expired: 0,
-            pending: 0,
-            online: 0,
-          }
+    // Calculate stats
+    const stats = {
+      total: Array.isArray(whitelist) ? whitelist.length : 0,
+      verified: Array.isArray(whitelist)
+        ? whitelist.filter((w: any) => w.verification_status === "verified").length
+        : 0,
+      expired: Array.isArray(whitelist) ? whitelist.filter((w: any) => w.verification_status === "expired").length : 0,
+      pending: Array.isArray(whitelist) ? whitelist.filter((w: any) => w.verification_status === "pending").length : 0,
+      online: 0, // TODO: Implement real-time online status
+      applications: Array.isArray(applications) ? applications.length : 0,
+    }
 
     return NextResponse.json({
-      entries: Array.isArray(entries) ? entries : [],
-      stats: {
-        total: Number.parseInt(stats.total) || 0,
-        verified: Number.parseInt(stats.verified) || 0,
-        expired: Number.parseInt(stats.expired) || 0,
-        pending: Number.parseInt(stats.pending) || 0,
-        online: 0, // This would need to be fetched from MTA server
-      },
+      whitelist: whitelist || [],
+      applications: applications || [],
+      stats,
     })
   } catch (error) {
-    console.error("Whitelist manager GET error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    console.error("Error fetching whitelist data:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
@@ -78,53 +72,46 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.discordId || !isAdmin(session.user.discordId)) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { mta_serial, discord_id, discord_username } = body
+    const { mta_serial, discord_id, discord_username } = await request.json()
 
-    // Validation
-    if (!mta_serial || !discord_id) {
-      return NextResponse.json({ message: "MTA Serial and Discord ID are required" }, { status: 400 })
+    // Validate MTA serial (32 hex characters)
+    if (!mta_serial || !/^[a-fA-F0-9]{32}$/.test(mta_serial)) {
+      return NextResponse.json({ error: "Invalid MTA serial - must be 32 hexadecimal characters" }, { status: 400 })
     }
 
-    // Validate MTA serial format (32 hex chars)
-    if (!/^[a-fA-F0-9]{32}$/.test(mta_serial)) {
-      return NextResponse.json({ message: "Invalid MTA Serial format" }, { status: 400 })
+    // Validate Discord ID (17-20 digits)
+    if (!discord_id || !/^\d{17,20}$/.test(discord_id)) {
+      return NextResponse.json({ error: "Invalid Discord ID - must be 17-20 digits" }, { status: 400 })
     }
 
-    // Validate Discord ID format (17-20 digits)
-    if (!/^\d{17,20}$/.test(discord_id)) {
-      return NextResponse.json({ message: "Invalid Discord ID format" }, { status: 400 })
-    }
-
-    // Check if serial or Discord ID already exists
-    const existing = await executeQuery("SELECT mta_serial FROM mta_whitelist WHERE mta_serial = ? OR discord_id = ?", [
-      mta_serial.toLowerCase(),
-      discord_id,
-    ])
-
-    if (Array.isArray(existing) && existing.length > 0) {
-      return NextResponse.json({ message: "Player already whitelisted" }, { status: 400 })
+    // Check if already whitelisted
+    const existing = await queryRow("SELECT mta_serial FROM mta_whitelist WHERE mta_serial = ?", [mta_serial])
+    if (existing) {
+      return NextResponse.json({ error: "MTA serial already whitelisted" }, { status: 409 })
     }
 
     // Add to whitelist
     await executeQuery("INSERT INTO mta_whitelist (mta_serial, discord_id, added_by) VALUES (?, ?, ?)", [
-      mta_serial.toLowerCase(),
+      mta_serial,
       discord_id,
-      session.user.discordUsername || session.user.name,
+      session.user.discordUsername || session.user.name || "Admin",
     ])
 
-    // Update user's Discord username if provided
+    // Update website user if exists
     if (discord_username) {
-      await executeQuery("UPDATE users SET discord_username = ? WHERE discord_id = ?", [discord_username, discord_id])
+      await executeQuery("UPDATE website_users SET discord_username = ? WHERE discord_id = ?", [
+        discord_username,
+        discord_id,
+      ])
     }
 
     return NextResponse.json({ message: "Player added to whitelist successfully" })
   } catch (error) {
-    console.error("Whitelist manager POST error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    console.error("Error adding to whitelist:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
@@ -133,22 +120,25 @@ export async function DELETE(request: NextRequest) {
     const session = await getServerSession(authOptions)
 
     if (!session?.user?.discordId || !isAdmin(session.user.discordId)) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Admin access required" }, { status: 403 })
     }
 
-    const body = await request.json()
-    const { id } = body // id is the mta_serial
+    const { mta_serial } = await request.json()
 
-    if (!id) {
-      return NextResponse.json({ message: "MTA Serial is required" }, { status: 400 })
+    if (!mta_serial) {
+      return NextResponse.json({ error: "MTA serial is required" }, { status: 400 })
     }
 
     // Remove from whitelist
-    const result = await executeQuery("DELETE FROM mta_whitelist WHERE mta_serial = ?", [id])
+    const result = await executeQuery("DELETE FROM mta_whitelist WHERE mta_serial = ?", [mta_serial])
+
+    if ((result as any).affectedRows === 0) {
+      return NextResponse.json({ error: "MTA serial not found in whitelist" }, { status: 404 })
+    }
 
     return NextResponse.json({ message: "Player removed from whitelist successfully" })
   } catch (error) {
-    console.error("Whitelist manager DELETE error:", error)
-    return NextResponse.json({ message: "Internal server error" }, { status: 500 })
+    console.error("Error removing from whitelist:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
