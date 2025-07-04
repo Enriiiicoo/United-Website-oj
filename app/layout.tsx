@@ -2,14 +2,17 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
 import { Navigation } from "@/components/navigation"
+import { Toaster } from "@/components/ui/sonner"
+import { SessionProvider } from "next-auth/react"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "United - Moroccan MTA Roleplay Server",
+  title: "UNITED SERVER - Morocco's Premier MTA Roleplay",
   description:
-    "Experience the ultimate roleplay adventure in Morocco's most immersive MTA server. Join thousands of players since 2021.",
+    "Join Morocco's most authentic MTA roleplay server. Immerse yourself in the ultimate gaming experience since 2021.",
     generator: 'v0.dev'
 }
 
@@ -19,10 +22,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-black text-white min-h-screen`}>
-        <Navigation />
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <SessionProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+            <Navigation />
+            <main className="pt-16">{children}</main>
+            <Toaster />
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )

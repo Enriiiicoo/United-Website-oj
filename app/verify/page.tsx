@@ -1,323 +1,384 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
-import { Shield, Clock, CheckCircle, XCircle, AlertCircle, Users, Timer } from "lucide-react"
-import { AnimatedSection } from "@/components/animated-section"
-import { TiltCard } from "@/components/tilt-card"
-import { FloatingParticles } from "@/components/floating-particles"
-import { ParallaxBackground } from "@/components/parallax-background"
-import { verifyUser, checkVerificationStatus, getWhitelistStats } from "@/app/actions/verification"
-import { toast } from "sonner"
+import { Badge } from "@/components/ui/badge"
+import { Shield, Clock, CheckCircle, AlertCircle, Users, UserCheck, Activity, LinkIcon, Crown } from "lucide-react"
+import { verifyAuthenticatedUser, checkAuthenticatedUserStatus } from "@/app/actions/verification"
+import { redirect } from "next/navigation"
+
+interface VerificationResult {
+  success: boolean
+  message: string
+  expiresAt?: string
+  user?: {
+    username: string
+    discriminator: string
+  }
+}
+
+interface StatusResult {
+  success: boolean
+  status?: string
+  secondsRemaining?: number
+  expiresAt?: string
+  verifiedAt?: string
+  message: string
+  user?: {
+    username: string
+    discriminator: string
+  }
+}
 
 export default function VerifyPage() {
-  const [discordId, setDiscordId] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [verificationResult, setVerificationResult] = useState<any>(null)
-  const [verificationStatus, setVerificationStatus] = useState<any>(null)
+  const { data: session, status } = useSession()
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null)
+  const [statusResult, setStatusResult] = useState<StatusResult | null>(null)
   const [timeRemaining, setTimeRemaining] = useState(0)
-  const [stats, setStats] = useState({ whitelisted: 0, activeVerifications: 0, totalVerifications: 0 })
+  const [linkedAccount, setLinkedAccount] = useState<any>(null)
+  const [stats, setStats] = useState({
+    whitelisted: 0,
+    activeVerifications: 0,
+    totalVerifications: 0,
+    registeredUsers: 0,
+  })
 
-  // Load stats on component mount
+  // Check verification status on component mount
   useEffect(() => {
-    getWhitelistStats().then(setStats)
+    checkStatus()
+    fetchStats()
+    fetchLinkedAccount()
   }, [])
 
-  // Timer for countdown
+  // Update countdown timer
   useEffect(() => {
-    let interval: NodeJS.Timeout
-
-    if (verificationStatus?.status === "active" && verificationStatus.secondsRemaining > 0) {
-      setTimeRemaining(verificationStatus.secondsRemaining)
-
-      interval = setInterval(() => {
+    if (timeRemaining > 0) {
+      const timer = setInterval(() => {
         setTimeRemaining((prev) => {
           if (prev <= 1) {
-            setVerificationStatus(null)
-            setVerificationResult(null)
-            toast.error("Verification expired!")
+            checkStatus() // Recheck status when timer expires
             return 0
           }
           return prev - 1
         })
       }, 1000)
+
+      return () => clearInterval(timer)
     }
+  }, [timeRemaining])
 
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [verificationStatus])
-
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
+  const fetchLinkedAccount = async () => {
     try {
-      const formData = new FormData()
-      formData.append("discordId", discordId)
-
-      const result = await verifyUser(formData)
-      setVerificationResult(result)
-
-      if (result.success) {
-        toast.success("Verification successful!")
-        // Check status immediately after verification
-        const status = await checkVerificationStatus(discordId)
-        setVerificationStatus(status)
-        // Update stats
-        getWhitelistStats().then(setStats)
-      } else {
-        toast.error(result.message)
+      const response = await fetch("/api/linked-account")
+      if (response.ok) {
+        const account = await response.json()
+        setLinkedAccount(account)
       }
     } catch (error) {
-      toast.error("Verification failed. Please try again.")
-    } finally {
-      setIsLoading(false)
+      console.error("Failed to fetch linked account:", error)
     }
   }
 
-  const handleCheckStatus = async () => {
-    if (!discordId) {
-      toast.error("Please enter your Discord ID")
+  const fetchStats = async () => {
+    try {
+      const response = await fetch("/api/stats")
+      if (response.ok) {
+        const data = await response.json()
+        setStats(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch stats:", error)
+    }
+  }
+
+  const checkStatus = async () => {
+    try {
+      const result = await checkAuthenticatedUserStatus()
+      setStatusResult(result)
+
+      if (result.success && result.secondsRemaining) {
+        setTimeRemaining(result.secondsRemaining)
+      }
+    } catch (error) {
+      console.error("Status check failed:", error)
+    }
+  }
+
+  const handleVerify = async () => {
+    if (!linkedAccount) {
+      redirect("/link-account")
       return
     }
 
-    setIsLoading(true)
-    try {
-      const status = await checkVerificationStatus(discordId)
-      setVerificationStatus(status)
+    setIsVerifying(true)
+    setVerificationResult(null)
 
-      if (status.success) {
-        toast.success("Status checked successfully!")
-      } else {
-        toast.error(status.message)
+    try {
+      const result = await verifyAuthenticatedUser()
+      setVerificationResult(result)
+
+      if (result.success && result.expiresAt) {
+        const expiresAt = new Date(result.expiresAt).getTime()
+        const now = Date.now()
+        const secondsRemaining = Math.max(0, Math.floor((expiresAt - now) / 1000))
+        setTimeRemaining(secondsRemaining)
       }
+
+      // Refresh status after verification
+      setTimeout(checkStatus, 1000)
     } catch (error) {
-      toast.error("Failed to check status")
+      setVerificationResult({
+        success: false,
+        message: "Verification failed. Please try again.",
+      })
     } finally {
-      setIsLoading(false)
+      setIsVerifying(false)
     }
   }
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, "0")}`
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
   }
 
-  const getProgressPercentage = () => {
-    if (!timeRemaining) return 0
-    return (timeRemaining / 300) * 100 // 300 seconds = 5 minutes
+  const progressPercentage = timeRemaining > 0 ? (timeRemaining / 300) * 100 : 0
+
+  // Check if user is authenticated
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen pt-24 pb-12 px-4 hero-pattern flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  if (status === "unauthenticated") {
+    redirect("/auth/signin")
   }
 
   return (
-    <div className="min-h-screen hero-pattern relative overflow-hidden">
-      <ParallaxBackground />
-      <FloatingParticles />
+    <div className="min-h-screen pt-24 pb-12 px-4 hero-pattern">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-4">Server Verification</h1>
+          <p className="text-gray-400 text-lg">Verify your access to join the MTA server</p>
+        </div>
 
-      <div className="container mx-auto px-4 py-16 relative z-10">
-        {/* Header */}
-        <AnimatedSection animation="slideUp">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600/20 to-orange-400/20 backdrop-blur-xl border border-orange-500/30 rounded-full px-6 py-3 mb-6">
-              <Shield className="h-6 w-6 text-orange-400" />
-              <span className="text-orange-300 font-semibold">Player Verification</span>
-            </div>
-            <h1 className="text-5xl font-bold text-white mb-4">
-              Verify Your <span className="text-orange-500">Access</span>
-            </h1>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Get verified to join the server. Verification lasts for 5 minutes.
-            </p>
-          </div>
-        </AnimatedSection>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {/* Verification Form */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Verification Card */}
           <div className="lg:col-span-2">
-            <AnimatedSection animation="slideRight" delay={200}>
-              <TiltCard>
-                <Card className="bg-gradient-to-br from-black/80 via-orange-950/30 to-black/80 backdrop-blur-xl border border-orange-500/30">
-                  <CardHeader>
-                    <CardTitle className="text-2xl text-white flex items-center gap-3">
-                      <Shield className="h-8 w-8 text-orange-400" />
-                      Discord Verification
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <form onSubmit={handleVerify} className="space-y-4">
-                      <div>
-                        <Label htmlFor="discordId" className="text-gray-300">
-                          Discord ID
-                        </Label>
-                        <Input
-                          id="discordId"
-                          type="text"
-                          placeholder="Enter your Discord ID (17-20 digits)"
-                          value={discordId}
-                          onChange={(e) => setDiscordId(e.target.value)}
-                          className="bg-black/50 border-gray-600 text-white placeholder-gray-400"
-                          required
-                        />
-                        <p className="text-sm text-gray-500 mt-1">Right-click your profile in Discord → Copy User ID</p>
-                      </div>
-
-                      <div className="flex gap-3">
-                        <Button
-                          type="submit"
-                          disabled={isLoading}
-                          className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white flex-1"
-                        >
-                          {isLoading ? "Verifying..." : "Verify Now"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleCheckStatus}
-                          disabled={isLoading}
-                          className="border-gray-600 text-gray-300 hover:bg-gray-800 bg-transparent"
-                        >
-                          Check Status
-                        </Button>
-                      </div>
-                    </form>
-
-                    {/* Verification Result */}
-                    {verificationResult && (
-                      <div
-                        className={`p-4 rounded-lg border ${
-                          verificationResult.success
-                            ? "bg-green-900/20 border-green-500/30 text-green-300"
-                            : "bg-red-900/20 border-red-500/30 text-red-300"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          {verificationResult.success ? (
-                            <CheckCircle className="h-5 w-5" />
-                          ) : (
-                            <XCircle className="h-5 w-5" />
+            <Card className="bg-black/50 border-orange-500/30 backdrop-blur-sm">
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-4 w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center">
+                  <Shield className="w-8 h-8 text-orange-400" />
+                </div>
+                <CardTitle className="text-2xl font-bold text-white">Access Verification</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* User Info */}
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={session?.user?.image || "/placeholder.svg?height=50&width=50"}
+                      alt="Discord Avatar"
+                      className="w-12 h-12 rounded-full"
+                    />
+                    <div className="flex-1">
+                      <div className="text-white font-medium text-lg">{session?.user?.name}</div>
+                      <div className="text-gray-400">Discord Account Connected</div>
+                      {linkedAccount && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <LinkIcon className="w-4 h-4 text-green-400" />
+                          <span className="text-green-400 text-sm">Linked to: {linkedAccount.username}</span>
+                          {linkedAccount.vip_level > 0 && (
+                            <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
+                              <Crown className="w-3 h-3 mr-1" />
+                              VIP
+                            </Badge>
                           )}
-                          <span className="font-medium">{verificationResult.message}</span>
                         </div>
+                      )}
+                    </div>
+                    <CheckCircle className="w-6 h-6 text-green-400" />
+                  </div>
+                </div>
+
+                {/* Account Linking Check */}
+                {!linkedAccount && (
+                  <Alert className="bg-orange-500/10 border-orange-500/30 text-orange-400">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      You need to link your game account first before verifying.
+                      <Button
+                        className="ml-2 bg-orange-500 hover:bg-orange-600 text-white text-sm px-3 py-1 h-auto"
+                        onClick={() => (window.location.href = "/link-account")}
+                      >
+                        Link Account
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Verification Status */}
+                {statusResult && statusResult.success && statusResult.status === "active" && (
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <CheckCircle className="w-6 h-6 text-green-400" />
+                      <div>
+                        <div className="text-green-400 font-medium">Verification Active</div>
+                        <div className="text-gray-400 text-sm">You can join the server now!</div>
+                      </div>
+                    </div>
+
+                    {timeRemaining > 0 && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Time remaining:</span>
+                          <span className="text-green-400 font-mono">{formatTime(timeRemaining)}</span>
+                        </div>
+                        <Progress value={progressPercentage} className="h-2 bg-gray-700" />
                       </div>
                     )}
+                  </div>
+                )}
 
-                    {/* Active Verification Status */}
-                    {verificationStatus?.status === "active" && (
-                      <div className="p-6 bg-gradient-to-r from-green-900/20 to-green-800/20 border border-green-500/30 rounded-lg">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-6 w-6 text-green-400" />
-                            <span className="text-green-300 font-semibold">Verification Active</span>
-                          </div>
-                          <Badge variant="outline" className="border-green-500 text-green-400">
-                            <Timer className="h-4 w-4 mr-1" />
-                            {formatTime(timeRemaining)}
-                          </Badge>
-                        </div>
+                {/* Verification Button */}
+                <Button
+                  onClick={handleVerify}
+                  disabled={
+                    isVerifying || !linkedAccount || (statusResult?.success && statusResult?.status === "active")
+                  }
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 text-lg"
+                >
+                  {isVerifying ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Verifying Access...
+                    </div>
+                  ) : statusResult?.success && statusResult?.status === "active" ? (
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Already Verified
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-5 h-5" />
+                      Verify Server Access
+                    </div>
+                  )}
+                </Button>
 
-                        <Progress value={getProgressPercentage()} className="mb-3" />
-
-                        <p className="text-sm text-green-200">
-                          You can join the server now! Verification expires in {formatTime(timeRemaining)}.
-                        </p>
-                      </div>
+                {/* Result Messages */}
+                {verificationResult && (
+                  <Alert
+                    className={`${
+                      verificationResult.success
+                        ? "bg-green-500/10 border-green-500/30 text-green-400"
+                        : "bg-red-500/10 border-red-500/30 text-red-400"
+                    }`}
+                  >
+                    {verificationResult.success ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4" />
                     )}
+                    <AlertDescription>{verificationResult.message}</AlertDescription>
+                  </Alert>
+                )}
 
-                    {/* Expired Status */}
-                    {verificationStatus?.status === "expired" && (
-                      <div className="p-4 bg-gradient-to-r from-red-900/20 to-red-800/20 border border-red-500/30 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="h-5 w-5 text-red-400" />
-                          <span className="text-red-300 font-medium">Verification Expired</span>
-                        </div>
-                        <p className="text-sm text-red-200 mt-2">
-                          Your verification has expired. Please verify again to join the server.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TiltCard>
-            </AnimatedSection>
+                {statusResult && !statusResult.success && (
+                  <Alert className="bg-red-500/10 border-red-500/30 text-red-400">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{statusResult.message}</AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Stats Sidebar */}
           <div className="space-y-6">
-            <AnimatedSection animation="slideLeft" delay={400}>
-              <TiltCard>
-                <Card className="bg-gradient-to-br from-black/80 via-orange-950/30 to-black/80 backdrop-blur-xl border border-orange-500/30">
-                  <CardHeader>
-                    <CardTitle className="text-xl text-white flex items-center gap-2">
-                      <Users className="h-6 w-6 text-orange-400" />
-                      Server Stats
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-orange-400">{stats.whitelisted}</div>
-                      <div className="text-sm text-gray-400">Whitelisted Players</div>
-                    </div>
+            {/* Server Stats */}
+            <Card className="bg-black/50 border-orange-500/30">
+              <CardHeader>
+                <CardTitle className="text-orange-400 text-lg">Server Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-400" />
+                    <span className="text-gray-300">Registered</span>
+                  </div>
+                  <span className="text-white font-medium">{stats.registeredUsers}</span>
+                </div>
 
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-green-400">{stats.activeVerifications}</div>
-                      <div className="text-sm text-gray-400">Active Verifications</div>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-green-400" />
+                    <span className="text-gray-300">Whitelisted</span>
+                  </div>
+                  <span className="text-white font-medium">{stats.whitelisted}</span>
+                </div>
 
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-400">{stats.totalVerifications}</div>
-                      <div className="text-sm text-gray-400">Total Verifications</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TiltCard>
-            </AnimatedSection>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-orange-400" />
+                    <span className="text-gray-300">Active Now</span>
+                  </div>
+                  <span className="text-white font-medium">{stats.activeVerifications}</span>
+                </div>
 
-            <AnimatedSection animation="slideLeft" delay={600}>
-              <TiltCard>
-                <Card className="bg-gradient-to-br from-black/80 via-orange-950/30 to-black/80 backdrop-blur-xl border border-orange-500/30">
-                  <CardHeader>
-                    <CardTitle className="text-xl text-white flex items-center gap-2">
-                      <Clock className="h-6 w-6 text-orange-400" />
-                      How It Works
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm text-gray-300">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        1
-                      </div>
-                      <div>Enter your Discord ID to verify your identity</div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        2
-                      </div>
-                      <div>System checks if you're whitelisted</div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        3
-                      </div>
-                      <div>Get 5 minutes of server access</div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                        4
-                      </div>
-                      <div>Join the server before verification expires</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TiltCard>
-            </AnimatedSection>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-purple-400" />
+                    <span className="text-gray-300">Total Verified</span>
+                  </div>
+                  <span className="text-white font-medium">{stats.totalVerifications}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* How it Works */}
+            <Card className="bg-black/50 border-orange-500/30">
+              <CardHeader>
+                <CardTitle className="text-orange-400 text-lg">How it Works</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm text-gray-300">
+                <div className="flex items-start gap-2">
+                  <div className="w-5 h-5 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-blue-400 text-xs">1</span>
+                  </div>
+                  <span>Sign in with your Discord account</span>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <div className="w-5 h-5 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-orange-400 text-xs">2</span>
+                  </div>
+                  <span>Link your in-game MTA account</span>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <div className="w-5 h-5 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-green-400 text-xs">3</span>
+                  </div>
+                  <span>Click "Verify Access" to get 5 minutes of server access</span>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <div className="w-5 h-5 bg-purple-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-purple-400 text-xs">4</span>
+                  </div>
+                  <span>Join the server using your linked account</span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

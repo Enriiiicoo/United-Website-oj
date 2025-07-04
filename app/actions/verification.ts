@@ -2,18 +2,21 @@
 
 import { executeQuery } from "@/lib/db"
 import { headers } from "next/headers"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
-export async function verifyUser(formData: FormData) {
+export async function verifyAuthenticatedUser() {
   try {
-    const discordId = formData.get("discordId") as string
+    const session = await getServerSession(authOptions)
 
-    // Validate Discord ID format (17-20 digits)
-    if (!discordId || !discordId.match(/^\d{17,20}$/)) {
+    if (!session?.user?.discordId) {
       return {
         success: false,
-        message: "Invalid Discord ID format. Must be 17-20 digits.",
+        message: "You must be logged in with Discord to verify.",
       }
     }
+
+    const discordId = session.user.discordId
 
     // Check if user is whitelisted
     const whitelistCheck = (await executeQuery("SELECT discord_id FROM mta_whitelist WHERE discord_id = ? LIMIT 1", [
@@ -23,7 +26,7 @@ export async function verifyUser(formData: FormData) {
     if (!whitelistCheck || whitelistCheck.length === 0) {
       return {
         success: false,
-        message: "Discord ID not found in whitelist. Please contact an administrator.",
+        message: "Your Discord account is not whitelisted. Please contact an administrator.",
       }
     }
 
@@ -50,10 +53,20 @@ export async function verifyUser(formData: FormData) {
       [discordId, expiresAtString, ipAddress, userAgent],
     )
 
+    // Log the verification
+    await executeQuery(
+      `INSERT INTO verification_logs (discord_id, action, ip_address, user_agent) VALUES (?, 'verify', ?, ?)`,
+      [discordId, ipAddress, userAgent],
+    )
+
     return {
       success: true,
       message: "Successfully verified! You can now join the server for the next 5 minutes.",
       expiresAt: expiresAt.toISOString(),
+      user: {
+        username: session.user.username,
+        discriminator: session.user.discriminator,
+      },
     }
   } catch (error) {
     console.error("Verification error:", error)
@@ -64,14 +77,18 @@ export async function verifyUser(formData: FormData) {
   }
 }
 
-export async function checkVerificationStatus(discordId: string) {
+export async function checkAuthenticatedUserStatus() {
   try {
-    if (!discordId || !discordId.match(/^\d{17,20}$/)) {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.discordId) {
       return {
         success: false,
-        message: "Invalid Discord ID format.",
+        message: "You must be logged in to check status.",
       }
     }
+
+    const discordId = session.user.discordId
 
     const result = (await executeQuery(
       `
@@ -93,7 +110,7 @@ export async function checkVerificationStatus(discordId: string) {
     if (!result || result.length === 0) {
       return {
         success: false,
-        message: "No verification found for this Discord ID.",
+        message: "No verification found. Click 'Verify Access' to get verified.",
       }
     }
 
@@ -105,6 +122,10 @@ export async function checkVerificationStatus(discordId: string) {
       expiresAt: verification.expires_at,
       verifiedAt: verification.verified_at,
       secondsRemaining: Math.max(0, verification.seconds_remaining || 0),
+      user: {
+        username: session.user.username,
+        discriminator: session.user.discriminator,
+      },
     }
   } catch (error) {
     console.error("Check verification error:", error)
@@ -125,10 +146,13 @@ export async function getWhitelistStats() {
 
     const totalVerifications = (await executeQuery("SELECT COUNT(*) as count FROM mta_verifications")) as any[]
 
+    const registeredUsers = (await executeQuery("SELECT COUNT(*) as count FROM users")) as any[]
+
     return {
       whitelisted: whitelistCount[0]?.count || 0,
       activeVerifications: activeVerifications[0]?.count || 0,
       totalVerifications: totalVerifications[0]?.count || 0,
+      registeredUsers: registeredUsers[0]?.count || 0,
     }
   } catch (error) {
     console.error("Stats error:", error)
@@ -136,6 +160,7 @@ export async function getWhitelistStats() {
       whitelisted: 0,
       activeVerifications: 0,
       totalVerifications: 0,
+      registeredUsers: 0,
     }
   }
 }

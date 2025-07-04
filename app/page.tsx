@@ -12,6 +12,7 @@ import { SoundWave } from "@/components/sound-wave"
 import { useScrollAnimation, useCountUp } from "@/hooks/use-scroll-animation"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 
 function AnimatedCounter({ end, label, icon: Icon }: { end: number; label: string; icon: any }) {
@@ -38,6 +39,7 @@ function AnimatedCounter({ end, label, icon: Icon }: { end: number; label: strin
 
 export default function HomePage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [serverStats, setServerStats] = useState({
     onlinePlayers: 45,
     maxPlayers: 100,
@@ -67,7 +69,11 @@ export default function HomePage() {
   }
 
   const handleVerify = () => {
-    router.push("/verify")
+    if (session) {
+      router.push("/verify")
+    } else {
+      router.push("/auth/signin")
+    }
   }
 
   const handleCopyIP = async () => {
@@ -150,7 +156,7 @@ export default function HomePage() {
                     className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-2xl hover:shadow-green-500/25 transition-all duration-300 group"
                   >
                     <Shield className="mr-3 h-6 w-6 group-hover:scale-110 transition-transform" />
-                    Verify Access
+                    {session ? "Verify Access" : "Sign In & Verify"}
                   </Button>
                 </TiltCard>
                 <TiltCard>
