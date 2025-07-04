@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Crown, Search, Link, User, ExternalLink, AlertCircle } from "lucide-react"
+import { Crown, Search, Link, User, ExternalLink, AlertCircle, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Navigation } from "@/components/navigation"
 
@@ -23,8 +23,6 @@ export default function LinkAccountPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [discordUsername, setDiscordUsername] = useState("")
-  const [gameUsername, setGameUsername] = useState("")
-  const [gamePassword, setGamePassword] = useState("")
   const [foundUser, setFoundUser] = useState<DiscordUser | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [isLinking, setIsLinking] = useState(false)
@@ -81,8 +79,8 @@ export default function LinkAccountPage() {
   }
 
   const linkAccount = async () => {
-    if (!foundUser || !gameUsername.trim() || !gamePassword.trim()) {
-      toast.error("Please fill in all fields")
+    if (!foundUser) {
+      toast.error("Please search and confirm your Discord user first")
       return
     }
 
@@ -93,8 +91,7 @@ export default function LinkAccountPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           discordId: foundUser.discordId,
-          gameUsername: gameUsername.trim(),
-          gamePassword: gamePassword.trim(),
+          discordUsername: foundUser.username,
         }),
       })
 
@@ -115,9 +112,11 @@ export default function LinkAccountPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-900 via-orange-800 to-orange-600 relative overflow-hidden">
+      {/* Background elements */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-32 h-32 bg-orange-400/20 rounded-full blur-xl animate-pulse"></div>
         <div className="absolute bottom-20 right-20 w-48 h-48 bg-orange-300/20 rounded-full blur-xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-500/10 rounded-full blur-2xl animate-pulse delay-500"></div>
       </div>
 
       <Navigation />
@@ -129,8 +128,8 @@ export default function LinkAccountPage() {
               <Crown className="h-6 w-6 text-orange-300" />
               <span className="text-orange-200 font-semibold">LINK ACCOUNT</span>
             </div>
-            <h1 className="text-4xl font-bold text-white mb-4">Link Your Accounts</h1>
-            <p className="text-orange-200">Connect your Discord and game accounts</p>
+            <h1 className="text-4xl font-bold text-white mb-4">Link Your Discord</h1>
+            <p className="text-orange-200">Connect your Discord account to your game account</p>
           </div>
 
           <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30">
@@ -141,9 +140,24 @@ export default function LinkAccountPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Current Game Account */}
+              <div className="bg-black/30 rounded-lg p-4 border border-orange-500/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-orange-500/30 rounded-full flex items-center justify-center">
+                    <User className="h-6 w-6 text-orange-300" />
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">Game Account</p>
+                    <p className="text-orange-300 text-sm">@{session.user.username}</p>
+                    <p className="text-orange-400 text-xs">ID: {session.user.gameAccountId}</p>
+                  </div>
+                  <CheckCircle className="h-5 w-5 text-green-400 ml-auto" />
+                </div>
+              </div>
+
               {/* Discord User Search */}
               <div className="space-y-4">
-                <Label className="text-orange-200 text-lg font-semibold">Step 1: Find Your Discord Account</Label>
+                <Label className="text-orange-200 text-lg font-semibold">Find Your Discord Account</Label>
                 <div className="flex gap-2">
                   <Input
                     value={discordUsername}
@@ -211,43 +225,15 @@ export default function LinkAccountPage() {
                 </div>
               )}
 
-              {/* Game Account Info */}
-              {foundUser && (
-                <div className="space-y-4">
-                  <Label className="text-orange-200 text-lg font-semibold">Step 2: Enter Game Account Details</Label>
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-orange-200">Game Username</Label>
-                      <Input
-                        value={gameUsername}
-                        onChange={(e) => setGameUsername(e.target.value)}
-                        placeholder="Your in-game username"
-                        className="bg-black/30 border-orange-500/30 text-white placeholder:text-orange-300/50"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-orange-200">Game Password</Label>
-                      <Input
-                        type="password"
-                        value={gamePassword}
-                        onChange={(e) => setGamePassword(e.target.value)}
-                        placeholder="Your in-game password"
-                        className="bg-black/30 border-orange-500/30 text-white placeholder:text-orange-300/50"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Link Button */}
               {foundUser && (
                 <Button
                   onClick={linkAccount}
-                  disabled={isLinking || !gameUsername.trim() || !gamePassword.trim()}
+                  disabled={isLinking}
                   className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3"
                 >
                   <Link className="h-4 w-4 mr-2" />
-                  {isLinking ? "Linking Account..." : "Link Account"}
+                  {isLinking ? "Linking Account..." : "Link Discord Account"}
                 </Button>
               )}
             </CardContent>

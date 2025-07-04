@@ -5,26 +5,23 @@ declare module "next-auth" {
       name?: string | null
       email?: string | null
       image?: string | null
-      discordId: string
       username: string
-      discriminator: string
-      avatar: string
+      gameAccountId: string
     }
   }
 
   interface User {
-    discordId: string
+    id: string
+    name?: string | null
+    email?: string | null
+    image?: string | null
     username: string
-    discriminator: string
-    avatar: string
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    discordId: string
     username: string
-    discriminator: string
-    avatar: string
+    gameAccountId: string
   }
 }

@@ -1,37 +1,33 @@
-import { pgTable, serial, varchar, text, timestamp, integer } from "drizzle-orm/pg-core"
+/**
+ * Database schema definitions for the United Server project
+ * This reflects the actual MySQL database structure
+ */
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: varchar("username", { length: 50 }).notNull().unique(),
-  email: varchar("email", { length: 100 }).notNull().unique(),
-  password: varchar("password", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-})
+/* eslint-disable @typescript-eslint/consistent-type-definitions */
 
-export const discordLinks = pgTable("discord_links", {
-  id: serial("id").primaryKey(),
-  discordId: varchar("discord_id", { length: 20 }).notNull().unique(),
-  discordUsername: varchar("discord_username", { length: 50 }).notNull(),
-  gameUsername: varchar("game_username", { length: 50 }).notNull(),
-  gamePassword: varchar("game_password", { length: 255 }).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-})
+// Game accounts table (existing from your game)
+export type Account = {
+  id: number
+  username: string
+  password: string // MD5 hashed with salt
+  salt: string
+  email: string
+  registerdate: string // ISO date string
+  lastlogin: string | null // ISO date string
+  ip: string | null
+  activated: number // tinyint(1)
+}
 
-export const playerStats = pgTable("player_stats", {
-  id: serial("id").primaryKey(),
-  username: varchar("username", { length: 50 }).notNull(),
-  level: integer("level").default(1),
-  experience: integer("experience").default(0),
-  kills: integer("kills").default(0),
-  deaths: integer("deaths").default(0),
-  playtime: integer("playtime").default(0),
-  lastSeen: timestamp("last_seen").defaultNow(),
-})
+// Discord links table (new for website)
+export type DiscordLink = {
+  id: number
+  discord_id: string
+  discord_username: string
+  account_id: number // references accounts.id
+  account_username: string
+  linked_at: string // ISO date string
+}
 
-export const whitelist = pgTable("whitelist", {
-  id: serial("id").primaryKey(),
-  username: varchar("username", { length: 50 }).notNull().unique(),
-  addedBy: varchar("added_by", { length: 50 }).notNull(),
-  reason: text("reason"),
-  addedAt: timestamp("added_at").defaultNow(),
-})
+// Table name constants for queries
+export const accounts = "accounts" as const
+export const discordLinks = "discord_links" as const

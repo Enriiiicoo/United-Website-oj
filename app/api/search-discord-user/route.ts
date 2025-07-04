@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Username is required" }, { status: 400 })
     }
 
+    // Get Discord bot token and guild ID from environment
     const botToken = process.env.DISCORD_BOT_TOKEN
     const guildId = process.env.DISCORD_GUILD_ID
 
@@ -19,7 +20,6 @@ export async function POST(request: NextRequest) {
     const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`, {
       headers: {
         Authorization: `Bot ${botToken}`,
-        "Content-Type": "application/json",
       },
     })
 
@@ -29,19 +29,18 @@ export async function POST(request: NextRequest) {
 
     const members = await response.json()
 
-    // Search for user by username or display name
-    const foundUser = members.find(
+    // Find user by username (case insensitive)
+    const foundMember = members.find(
       (member: any) =>
         member.user.username.toLowerCase() === username.toLowerCase() ||
         member.user.global_name?.toLowerCase() === username.toLowerCase() ||
         member.nick?.toLowerCase() === username.toLowerCase(),
     )
 
-    if (!foundUser) {
+    if (!foundMember) {
       return NextResponse.json(
         {
-          error: "User not found in Discord server",
-          message: "Please join our Discord server first before linking your account",
+          error: "Discord user not found in server",
           discordInvite: process.env.DISCORD_INVITE_URL || "https://discord.gg/your-server",
         },
         { status: 404 },
@@ -49,11 +48,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      discordId: foundUser.user.id,
-      username: foundUser.user.username,
-      displayName: foundUser.user.global_name || foundUser.nick || foundUser.user.username,
-      avatar: foundUser.user.avatar
-        ? `https://cdn.discordapp.com/avatars/${foundUser.user.id}/${foundUser.user.avatar}.png`
+      discordId: foundMember.user.id,
+      username: foundMember.user.username,
+      displayName: foundMember.user.global_name || foundMember.nick || foundMember.user.username,
+      avatar: foundMember.user.avatar
+        ? `https://cdn.discordapp.com/avatars/${foundMember.user.id}/${foundMember.user.avatar}.png`
         : null,
     })
   } catch (error) {

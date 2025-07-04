@@ -1,9 +1,7 @@
 import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { db } from "@/lib/db"
-import { users } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
-import bcrypt from "bcryptjs"
+import mysql from "mysql2/promise"
+import crypto from "crypto"
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -19,22 +17,46 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const user = await db.select().from(users).where(eq(users.username, credentials.username)).limit(1)
+          // Create database connection
+          const connection = await mysql.createConnection({
+            host: process.env.DB_HOST,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+          })
 
-          if (user.length === 0) {
-            return null
-          }
+          try {
+            // Check if user exists in game accounts table
+            const [rows] = await connection.execute(
+              "SELECT id, username, password, salt, email FROM accounts WHERE username = ?",
+              [credentials.username],
+            )
 
-          const isPasswordValid = await bcrypt.compare(credentials.password, user[0].password)
+            const accounts = rows as any[]
+            if (accounts.length === 0) {
+              return null
+            }
 
-          if (!isPasswordValid) {
-            return null
-          }
+            const account = accounts[0]
 
-          return {
-            id: user[0].id.toString(),
-            username: user[0].username,
-            email: user[0].email,
+            // Verify password using MD5 with salt (same as game)
+            const hashedPassword = crypto
+              .createHash("md5")
+              .update(credentials.password + account.salt)
+              .digest("hex")
+
+            if (hashedPassword !== account.password) {
+              return null
+            }
+
+            return {
+              id: account.id.toString(),
+              name: account.username,
+              email: account.email || `${account.username}@unitedserver.com`,
+              username: account.username,
+            }
+          } finally {
+            await connection.end()
           }
         } catch (error) {
           console.error("Auth error:", error)
@@ -53,6 +75,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.username = user.username
+        token.gameAccountId = user.id
       }
       return token
     },
@@ -60,6 +83,7 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.sub
         session.user.username = token.username as string
+        session.user.gameAccountId = token.gameAccountId as string
       }
       return session
     },
