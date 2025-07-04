@@ -82,7 +82,7 @@ export default function SignUpPage() {
       if (response.ok) {
         setSuccess("Account created successfully! Redirecting...")
         setTimeout(() => {
-          window.location.href = "/dashboard"
+          window.location.href = "/auth/success"
         }, 2000)
       } else {
         setError(result.message || "Registration failed")

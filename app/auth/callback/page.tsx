@@ -35,7 +35,7 @@ export default function AuthCallbackPage() {
   const checkUserExists = async () => {
     try {
       console.log("🔍 Callback Page - Checking if user exists...")
-      setMessage("Checking if you have an account...")
+      setMessage("Checking your account status...")
 
       const response = await fetch("/api/user/profile")
       console.log("📝 Callback Page - Profile API response status:", response.status)
@@ -43,26 +43,29 @@ export default function AuthCallbackPage() {
       if (response.ok) {
         const data = await response.json()
         console.log("✅ Callback Page - User exists:", data)
-        setMessage("Welcome back! Redirecting to dashboard...")
+        setMessage("Account verified! Redirecting to dashboard...")
         setTimeout(() => {
           window.location.href = "/dashboard"
         }, 1500)
       } else if (response.status === 404) {
         console.log("❌ Callback Page - User not found, redirecting to signup")
-        setMessage("New user detected. Redirecting to signup...")
+        setMessage("Please complete your registration...")
         setTimeout(() => {
           window.location.href = "/auth/signup"
         }, 1500)
       } else {
         const errorData = await response.json()
         console.error("❌ Callback Page - API error:", errorData)
-        throw new Error("Failed to check user status")
+        setMessage("Account verification failed. Redirecting to home...")
+        setTimeout(() => {
+          window.location.href = "/"
+        }, 3000)
       }
     } catch (error) {
       console.error("❌ Callback Page - Error:", error)
-      setMessage("Something went wrong. Please try again.")
+      setMessage("Something went wrong. Redirecting to home...")
       setTimeout(() => {
-        window.location.href = "/auth/signin"
+        window.location.href = "/"
       }, 3000)
     } finally {
       setChecking(false)

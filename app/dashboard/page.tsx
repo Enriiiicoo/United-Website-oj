@@ -26,15 +26,27 @@ interface UserProfile {
 }
 
 export default function DashboardPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Add debugging
+  useEffect(() => {
+    console.log("🔍 Dashboard - Session status:", status)
+    console.log("📝 Dashboard - Session data:", JSON.stringify(session, null, 2))
+  }, [session, status])
 
   useEffect(() => {
     if (session?.user?.discordId) {
       fetchProfile()
+    } else if (status !== "loading") {
+      console.log("❌ Dashboard - No session, redirecting to signin")
+      // Only redirect if we're sure there's no session
+      setTimeout(() => {
+        window.location.href = "/auth/signin"
+      }, 1000)
     }
-  }, [session])
+  }, [session, status])
 
   const fetchProfile = async () => {
     try {
