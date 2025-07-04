@@ -32,11 +32,14 @@ export default function VIPPage() {
   }, [])
 
   const handlePurchase = (tier: string, price: string) => {
-    alert(`🎉 Redirecting to purchase ${tier} VIP for ${price}! Contact our staff team for instant activation.`)
+    alert(
+      `🎉 Contact our staff team on Discord to purchase ${tier} VIP for ${price}!\n\nJoin: https://discord.gg/eQeHev6p94`,
+    )
+    window.open("https://discord.gg/eQeHev6p94", "_blank")
   }
 
   const handleContactSupport = () => {
-    window.open("https://discord.gg/united-support", "_blank")
+    window.open("https://discord.gg/eQeHev6p94", "_blank")
   }
 
   const vipTiers = [
@@ -164,7 +167,7 @@ export default function VIPPage() {
             vehicles, properties, and much more!
           </p>
 
-          <div className="flex items-center justify-center gap-4 mt-8">
+          <div className="flex items-center justify-center gap-4 mt-8 flex-wrap">
             <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 text-sm">
               <CheckCircle className="w-4 h-4 mr-2" />
               Instant Activation
@@ -181,12 +184,12 @@ export default function VIPPage() {
         </div>
 
         {/* VIP Tiers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-16">
           {vipTiers.map((tier, index) => (
             <div key={index} className="relative group">
               {tier.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-20">
-                  <Badge className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-1 text-sm font-semibold">
+                  <Badge className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-1 text-sm font-semibold animate-pulse">
                     MOST POPULAR
                   </Badge>
                 </div>
@@ -201,12 +204,12 @@ export default function VIPPage() {
               )}
 
               <Card
-                className={`relative h-full backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border ${tier.borderColor} ${tier.glowColor} hover:shadow-lg transition-all duration-500 hover:scale-105 group-hover:border-opacity-60`}
+                className={`relative h-full backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border-2 ${tier.borderColor} ${tier.glowColor} hover:shadow-2xl transition-all duration-500 hover:scale-105 group-hover:border-opacity-60`}
               >
                 <CardHeader className="text-center pb-4">
                   <div className="relative mb-4">
                     <div
-                      className={`w-16 h-16 bg-gradient-to-br ${tier.color} rounded-2xl mx-auto flex items-center justify-center shadow-lg ${tier.glowColor} group-hover:scale-110 transition-transform duration-300`}
+                      className={`w-16 h-16 bg-gradient-to-br ${tier.color} rounded-2xl mx-auto flex items-center justify-center shadow-lg ${tier.glowColor} group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
                     >
                       <tier.icon className="w-8 h-8 text-white" />
                     </div>
@@ -215,7 +218,9 @@ export default function VIPPage() {
                     ></div>
                   </div>
 
-                  <CardTitle className="text-2xl font-bold text-white mb-2">{tier.name}</CardTitle>
+                  <CardTitle className="text-2xl font-bold text-white mb-2 group-hover:text-orange-300 transition-colors duration-300">
+                    {tier.name}
+                  </CardTitle>
                   <div className="space-y-1">
                     <div className={`text-4xl font-bold bg-gradient-to-r ${tier.color} bg-clip-text text-transparent`}>
                       {tier.price}
@@ -282,12 +287,12 @@ export default function VIPPage() {
           ].map((benefit, index) => (
             <Card
               key={index}
-              className="backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105 group"
+              className="backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-white/10 hover:border-orange-500/30 transition-all duration-300 hover:scale-105 group"
             >
               <CardContent className="p-8 text-center">
                 <div className="relative mb-6">
                   <div
-                    className={`w-16 h-16 bg-gradient-to-br ${benefit.color} rounded-2xl mx-auto flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                    className={`w-16 h-16 bg-gradient-to-br ${benefit.color} rounded-2xl mx-auto flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
                   >
                     <benefit.icon className="w-8 h-8 text-white" />
                   </div>
@@ -295,7 +300,7 @@ export default function VIPPage() {
                     className={`absolute inset-0 bg-gradient-to-br ${benefit.color} rounded-2xl blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-300`}
                   ></div>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-white group-hover:to-gray-300 transition-all duration-300">
+                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-orange-300 transition-colors duration-300">
                   {benefit.title}
                 </h3>
                 <p className="text-gray-400 group-hover:text-gray-300 transition-colors duration-300">
@@ -310,11 +315,14 @@ export default function VIPPage() {
         <div className="text-center">
           <Card className="backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-orange-500/30 shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 transition-all duration-300 max-w-2xl mx-auto">
             <CardContent className="p-8">
-              <MessageSquare className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+              <div className="relative mb-4">
+                <MessageSquare className="w-12 h-12 text-orange-500 mx-auto" />
+                <div className="absolute inset-0 bg-orange-500 blur-xl opacity-30"></div>
+              </div>
               <h3 className="text-2xl font-bold text-white mb-4">Need Help?</h3>
               <p className="text-gray-300 mb-6">
                 Our VIP support team is available 24/7 to assist you with purchases, activation, and any questions you
-                may have.
+                may have. Join our Discord for instant support!
               </p>
               <Button
                 onClick={handleContactSupport}
@@ -322,7 +330,7 @@ export default function VIPPage() {
               >
                 <span className="relative z-10 flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" />
-                  Contact Support
+                  Join Discord Support
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
               </Button>

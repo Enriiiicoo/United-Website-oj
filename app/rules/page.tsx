@@ -1,285 +1,358 @@
 "use client"
 
-import { DashboardLayout } from "@/components/dashboard-layout"
+import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, Users, MessageSquare, Car, AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react"
+import {
+  Shield,
+  AlertTriangle,
+  Users,
+  Car,
+  MessageSquare,
+  Crown,
+  Zap,
+  Ban,
+  CheckCircle,
+  ExternalLink,
+  Sparkles,
+} from "lucide-react"
+import { useState, useEffect } from "react"
+
+// Floating particle component
+const RulesParticle = ({ delay }: { delay: number }) => (
+  <div
+    className="absolute w-1 h-1 bg-gradient-to-r from-red-400 to-orange-500 rounded-full animate-pulse opacity-70"
+    style={{
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDelay: `${delay}s`,
+      animationDuration: `${2 + Math.random() * 3}s`,
+    }}
+  />
+)
 
 const ruleCategories = [
   {
-    id: "general",
+    id: 1,
     title: "General Rules",
     icon: Shield,
-    color: "text-blue-600",
-    bgColor: "bg-blue-100",
+    color: "from-blue-500 to-cyan-600",
+    glowColor: "shadow-blue-500/50",
     rules: [
-      {
-        id: "1.1",
-        title: "Respect All Players",
-        description: "Treat all community members with respect. No harassment, discrimination, or toxic behavior.",
-        severity: "high",
-      },
-      {
-        id: "1.2",
-        title: "No Cheating or Exploiting",
-        description: "Use of cheats, hacks, or exploiting game bugs is strictly prohibited.",
-        severity: "high",
-      },
-      {
-        id: "1.3",
-        title: "English Only in Public",
-        description: "English must be used in all public channels and in-game areas.",
-        severity: "medium",
-      },
-      {
-        id: "1.4",
-        title: "No Advertising",
-        description: "Advertising other servers, Discord servers, or external services is not allowed.",
-        severity: "medium",
-      },
+      "Respect all players and staff members at all times",
+      "No harassment, discrimination, or toxic behavior",
+      "English only in public channels and voice chat",
+      "No advertising other servers or communities",
+      "Follow Discord Terms of Service and Community Guidelines",
+      "Use appropriate usernames and profile pictures",
     ],
   },
   {
-    id: "roleplay",
+    id: 2,
     title: "Roleplay Rules",
     icon: Users,
-    color: "text-green-600",
-    bgColor: "bg-green-100",
+    color: "from-green-500 to-emerald-600",
+    glowColor: "shadow-green-500/50",
     rules: [
-      {
-        id: "2.1",
-        title: "Stay in Character",
-        description: "Maintain your character at all times. No breaking character or OOC in IC situations.",
-        severity: "high",
-      },
-      {
-        id: "2.2",
-        title: "Realistic Roleplay",
-        description: "Keep your roleplay realistic. No superpowers, unrealistic scenarios, or fail RP.",
-        severity: "high",
-      },
-      {
-        id: "2.3",
-        title: "Value Your Life",
-        description: "Your character values their life. No unrealistic risks or 'YOLO' mentality.",
-        severity: "medium",
-      },
-      {
-        id: "2.4",
-        title: "No Metagaming",
-        description: "Don't use information your character wouldn't know in-game.",
-        severity: "high",
-      },
+      "Stay in character at all times during roleplay",
+      "No Random Death Match (RDM) or Vehicle Death Match (VDM)",
+      "No metagaming - using out-of-character information in-game",
+      "No powergaming - forcing actions on other players",
+      "Realistic roleplay scenarios only",
+      "No breaking character in public areas",
+      "Respect other players' roleplay scenarios",
     ],
   },
   {
-    id: "communication",
+    id: 3,
+    title: "Vehicle Rules",
+    icon: Car,
+    color: "from-purple-500 to-violet-600",
+    glowColor: "shadow-purple-500/50",
+    rules: [
+      "No unrealistic driving or stunts in populated areas",
+      "Follow traffic laws and speed limits",
+      "No ramming or intentional vehicle damage",
+      "Park vehicles in designated areas only",
+      "No stealing emergency vehicles without proper roleplay",
+      "Respect vehicle ownership and permissions",
+    ],
+  },
+  {
+    id: 4,
     title: "Communication Rules",
     icon: MessageSquare,
-    color: "text-purple-600",
-    bgColor: "bg-purple-100",
+    color: "from-orange-500 to-red-600",
+    glowColor: "shadow-orange-500/50",
     rules: [
-      {
-        id: "3.1",
-        title: "No Spam or Flooding",
-        description: "Don't spam messages in chat or voice channels.",
-        severity: "low",
-      },
-      {
-        id: "3.2",
-        title: "Appropriate Content Only",
-        description: "No NSFW, illegal, or inappropriate content in any form.",
-        severity: "high",
-      },
-      {
-        id: "3.3",
-        title: "Voice Chat Etiquette",
-        description: "Use push-to-talk, avoid background noise, and be respectful.",
-        severity: "low",
-      },
-    ],
-  },
-  {
-    id: "vehicles",
-    title: "Vehicle & Traffic Rules",
-    icon: Car,
-    color: "text-orange-600",
-    bgColor: "bg-orange-100",
-    rules: [
-      {
-        id: "4.1",
-        title: "Realistic Driving",
-        description: "Drive realistically. Follow traffic laws and don't drive recklessly without RP reason.",
-        severity: "medium",
-      },
-      {
-        id: "4.2",
-        title: "No VDM (Vehicle Death Match)",
-        description: "Don't use vehicles as weapons to kill or injure other players.",
-        severity: "high",
-      },
-      {
-        id: "4.3",
-        title: "Emergency Vehicle Priority",
-        description: "Give way to emergency vehicles with sirens and lights active.",
-        severity: "low",
-      },
+      "No spamming in chat or voice channels",
+      "No excessive use of capital letters",
+      "No inappropriate language or content",
+      "Use proper radio etiquette for emergency services",
+      "No out-of-character talk in roleplay channels",
+      "Report issues through proper channels only",
     ],
   },
 ]
 
-const getSeverityBadge = (severity: string) => {
-  switch (severity) {
-    case "high":
-      return <Badge className="bg-red-100 text-red-800">High Priority</Badge>
-    case "medium":
-      return <Badge className="bg-yellow-100 text-yellow-800">Medium Priority</Badge>
-    case "low":
-      return <Badge className="bg-green-100 text-green-800">Low Priority</Badge>
-    default:
-      return <Badge variant="outline">Standard</Badge>
-  }
-}
-
-const getSeverityIcon = (severity: string) => {
-  switch (severity) {
-    case "high":
-      return <XCircle className="h-4 w-4 text-red-500" />
-    case "medium":
-      return <AlertTriangle className="h-4 w-4 text-yellow-500" />
-    case "low":
-      return <Info className="h-4 w-4 text-blue-500" />
-    default:
-      return <CheckCircle className="h-4 w-4 text-gray-500" />
-  }
-}
+const punishments = [
+  {
+    level: "Warning",
+    color: "from-yellow-500 to-orange-500",
+    description: "First offense for minor rule violations",
+    duration: "Permanent record",
+    icon: AlertTriangle,
+  },
+  {
+    level: "Kick",
+    color: "from-orange-500 to-red-500",
+    description: "Temporary removal from server",
+    duration: "Immediate",
+    icon: ExternalLink,
+  },
+  {
+    level: "Temporary Ban",
+    color: "from-red-500 to-pink-500",
+    description: "Banned for a specific time period",
+    duration: "1 day - 30 days",
+    icon: Ban,
+  },
+  {
+    level: "Permanent Ban",
+    color: "from-red-600 to-red-800",
+    description: "Permanent removal from community",
+    duration: "Permanent",
+    icon: Ban,
+  },
+]
 
 export default function RulesPage() {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
+  }, [])
+
+  const handleReportIssue = () => {
+    window.open("https://discord.gg/eQeHev6p94", "_blank")
+  }
+
   return (
-    <DashboardLayout title="Server Rules">
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Server Rules</h1>
-          <p className="text-gray-600 mt-2">
-            Please read and follow all server rules to ensure a positive experience for everyone.
-          </p>
+    <div className="min-h-screen bg-black text-white relative overflow-hidden">
+      {/* Advanced Background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 via-transparent to-orange-900/10"></div>
+
+        {/* Particle System */}
+        <div className="absolute inset-0">
+          {Array.from({ length: 25 }).map((_, i) => (
+            <RulesParticle key={i} delay={i * 0.1} />
+          ))}
         </div>
 
-        {/* Important Notice */}
-        <Alert className="border-orange-200 bg-orange-50">
-          <AlertTriangle className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="text-orange-800">
-            <strong>Important:</strong> Ignorance of the rules is not an excuse. All players are expected to read and
-            follow these rules at all times. Violations may result in warnings, kicks, or permanent bans.
-          </AlertDescription>
-        </Alert>
+        {/* Mouse Follow Glow */}
+        <div
+          className="absolute w-96 h-96 bg-gradient-radial from-red-500/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-300"
+          style={{
+            left: mousePosition.x - 192,
+            top: mousePosition.y - 192,
+          }}
+        />
+
+        {/* Animated Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(239,68,68,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(239,68,68,0.02)_1px,transparent_1px)] bg-[size:60px_60px] animate-pulse"></div>
+      </div>
+
+      <Navigation />
+
+      <div className="relative z-10 container mx-auto px-6 py-16">
+        {/* Header */}
+        <div className="text-center mb-16 space-y-6">
+          <div className="relative inline-block">
+            <Shield className="w-16 h-16 text-red-500 mx-auto mb-4 animate-pulse" />
+            <div className="absolute inset-0 bg-red-500 blur-2xl opacity-30 animate-pulse"></div>
+          </div>
+
+          <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-red-400 via-orange-500 to-yellow-500 bg-clip-text text-transparent mb-4">
+            SERVER RULES
+          </h1>
+
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            Welcome to United Roleplay! Please read and follow all rules to ensure a positive experience for everyone.
+            Ignorance of the rules is not an excuse.
+          </p>
+
+          <Alert className="max-w-4xl mx-auto bg-gradient-to-r from-red-900/50 to-orange-900/50 border border-red-500/30 backdrop-blur-xl">
+            <AlertTriangle className="h-5 w-5 text-red-400" />
+            <AlertDescription className="text-red-200 text-lg">
+              <strong>Important:</strong> All players are expected to read and understand these rules. Violations may
+              result in warnings, kicks, or permanent bans depending on severity.
+            </AlertDescription>
+          </Alert>
+        </div>
 
         {/* Rules Categories */}
-        <div className="space-y-8">
-          {ruleCategories.map((category) => {
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+          {ruleCategories.map((category, index) => {
             const IconComponent = category.icon
             return (
-              <Card key={category.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <div className={`${category.bgColor} rounded-lg p-2 mr-3`}>
-                      <IconComponent className={`h-6 w-6 ${category.color}`} />
-                    </div>
-                    {category.title}
-                  </CardTitle>
-                  <CardDescription>{category.rules.length} rules in this category</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {category.rules.map((rule) => (
-                      <div key={rule.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            {getSeverityIcon(rule.severity)}
-                            <h4 className="font-semibold text-gray-900">
-                              {rule.id} - {rule.title}
-                            </h4>
-                          </div>
-                          {getSeverityBadge(rule.severity)}
-                        </div>
-                        <p className="text-sm text-gray-600 leading-relaxed">{rule.description}</p>
+              <Card
+                key={category.id}
+                className={`backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-gray-700/50 hover:border-orange-500/50 transition-all duration-500 hover:scale-105 group ${category.glowColor} hover:shadow-2xl`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                {/* Glow Effect */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-0 group-hover:opacity-10 blur-xl transition-opacity duration-500`}
+                ></div>
+
+                <CardHeader className="relative z-10">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <div
+                        className={`w-16 h-16 bg-gradient-to-br ${category.color} rounded-2xl flex items-center justify-center shadow-lg ${category.glowColor} group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+                      >
+                        <IconComponent className="w-8 h-8 text-white" />
                       </div>
-                    ))}
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${category.color} rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition-opacity duration-300`}
+                      ></div>
+                    </div>
+                    <div>
+                      <CardTitle className="text-2xl text-white group-hover:text-orange-300 transition-colors duration-300">
+                        {category.title}
+                      </CardTitle>
+                      <CardDescription className="text-gray-400 group-hover:text-gray-300 transition-colors duration-300">
+                        {category.rules.length} rules in this category
+                      </CardDescription>
+                    </div>
                   </div>
+                </CardHeader>
+
+                <CardContent className="space-y-4 relative z-10">
+                  {category.rules.map((rule, ruleIndex) => (
+                    <div
+                      key={ruleIndex}
+                      className="flex items-start space-x-3 p-3 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 transition-all duration-300 group/rule"
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        <CheckCircle className="w-4 h-4 text-green-400 group-hover/rule:scale-110 transition-transform duration-300" />
+                      </div>
+                      <p className="text-sm text-gray-300 group-hover/rule:text-white transition-colors duration-300 leading-relaxed">
+                        {rule}
+                      </p>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )
           })}
         </div>
 
-        {/* Punishment Guidelines */}
-        <Card className="bg-gradient-to-r from-red-50 to-red-100 border-red-200">
-          <CardHeader>
-            <CardTitle className="flex items-center text-red-800">
-              <AlertTriangle className="h-5 w-5 mr-2" />
-              Punishment Guidelines
+        {/* Punishment System */}
+        <Card className="backdrop-blur-xl bg-gradient-to-br from-red-900/50 to-orange-900/50 border border-red-500/30 mb-16 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 animate-pulse"></div>
+
+          <CardHeader className="text-center relative z-10">
+            <div className="relative mb-4">
+              <Ban className="w-12 h-12 text-red-400 mx-auto" />
+              <div className="absolute inset-0 bg-red-400 blur-xl opacity-30"></div>
+            </div>
+            <CardTitle className="text-3xl bg-gradient-to-r from-red-300 to-orange-300 bg-clip-text text-transparent">
+              Punishment System
             </CardTitle>
-            <CardDescription className="text-red-700">Understanding our enforcement system</CardDescription>
+            <CardDescription className="text-red-200 text-lg">
+              Understanding the consequences of rule violations
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-white rounded-lg">
-                <div className="flex items-center mb-2">
-                  <Info className="h-5 w-5 text-blue-500 mr-2" />
-                  <h4 className="font-semibold text-gray-900">First Offense</h4>
-                </div>
-                <p className="text-sm text-gray-600">Verbal warning or written warning depending on severity</p>
-              </div>
-              <div className="p-4 bg-white rounded-lg">
-                <div className="flex items-center mb-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
-                  <h4 className="font-semibold text-gray-900">Repeat Offense</h4>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Temporary ban (1-7 days) or permanent ban for serious violations
-                </p>
-              </div>
-              <div className="p-4 bg-white rounded-lg">
-                <div className="flex items-center mb-2">
-                  <XCircle className="h-5 w-5 text-red-500 mr-2" />
-                  <h4 className="font-semibold text-gray-900">Serious Violations</h4>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Immediate permanent ban for cheating, harassment, or illegal content
-                </p>
-              </div>
+
+          <CardContent className="relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {punishments.map((punishment, index) => {
+                const IconComponent = punishment.icon
+                return (
+                  <div
+                    key={index}
+                    className="text-center p-6 backdrop-blur-sm bg-black/30 rounded-xl border border-white/10 hover:border-red-500/30 transition-all duration-300 hover:scale-105 group"
+                  >
+                    <div className="relative mb-4">
+                      <div
+                        className={`w-16 h-16 bg-gradient-to-br ${punishment.color} rounded-2xl mx-auto flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
+                      >
+                        <IconComponent className="w-8 h-8 text-white" />
+                      </div>
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${punishment.color} rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition-opacity duration-300`}
+                      ></div>
+                    </div>
+                    <h4 className="font-bold text-white mb-2 text-lg">{punishment.level}</h4>
+                    <p className="text-sm text-gray-300 mb-3">{punishment.description}</p>
+                    <Badge className={`bg-gradient-to-r ${punishment.color} text-white shadow-lg`}>
+                      {punishment.duration}
+                    </Badge>
+                  </div>
+                )
+              })}
             </div>
           </CardContent>
         </Card>
 
-        {/* Contact Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Need Help or Have Questions?</CardTitle>
-            <CardDescription>Our staff team is here to help clarify any rules or answer questions.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <MessageSquare className="h-6 w-6 text-blue-600 mb-2" />
-                <h4 className="font-semibold text-gray-900 mb-1">Discord Support</h4>
-                <p className="text-sm text-gray-600">
-                  Open a ticket in our Discord server for rule clarifications or appeals.
-                </p>
+        {/* Report Section */}
+        <Card className="backdrop-blur-xl bg-gradient-to-br from-blue-900/50 to-purple-900/50 border border-blue-500/30 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 animate-pulse"></div>
+
+          <CardContent className="p-8 text-center relative z-10">
+            <div className="relative mb-6">
+              <MessageSquare className="h-16 w-16 text-blue-400 mx-auto" />
+              <div className="absolute inset-0 bg-blue-400 blur-xl opacity-30"></div>
+            </div>
+            <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent mb-4">
+              Report Rule Violations
+            </h3>
+            <p className="text-gray-300 mb-6 text-lg max-w-2xl mx-auto">
+              Witnessed a rule violation? Report it to our staff team through Discord. Include evidence such as
+              screenshots or video clips when possible.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-300 mb-8">
+              <div className="flex items-center justify-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-400" />
+                Include detailed description
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <Users className="h-6 w-6 text-green-600 mb-2" />
-                <h4 className="font-semibold text-gray-900 mb-1">Staff Team</h4>
-                <p className="text-sm text-gray-600">
-                  Contact any online staff member for immediate assistance or questions.
-                </p>
+              <div className="flex items-center justify-center gap-2">
+                <Crown className="w-4 h-4 text-purple-400" />
+                Provide evidence if available
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Zap className="w-4 h-4 text-cyan-400" />
+                Use appropriate report channel
               </div>
             </div>
+            <Button
+              onClick={handleReportIssue}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-4 text-lg font-semibold shadow-lg shadow-blue-500/50 hover:shadow-blue-500/80 transition-all duration-300 hover:scale-105 overflow-hidden group"
+            >
+              <span className="relative z-10 flex items-center gap-3">
+                <MessageSquare className="w-5 h-5" />
+                Report on Discord
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+            </Button>
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+
+      {/* Floating Elements */}
+      <div className="absolute top-20 left-10 w-4 h-4 bg-red-500 rounded-full animate-bounce opacity-60"></div>
+      <div className="absolute top-40 right-20 w-3 h-3 bg-orange-500 rounded-full animate-pulse opacity-60"></div>
+      <div className="absolute bottom-20 left-20 w-5 h-5 bg-yellow-500 rounded-full animate-ping opacity-40"></div>
+      <div className="absolute bottom-40 right-10 w-2 h-2 bg-red-500 rounded-full animate-bounce opacity-60"></div>
+    </div>
   )
 }

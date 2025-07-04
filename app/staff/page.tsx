@@ -1,11 +1,25 @@
 "use client"
 
-import { DashboardLayout } from "@/components/dashboard-layout"
+import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Shield, Crown, Star, Users, MessageSquare, Mail, Sparkles, Award, Zap } from "lucide-react"
+import { useState, useEffect } from "react"
+
+// Floating particle component
+const StaffParticle = ({ delay }: { delay: number }) => (
+  <div
+    className="absolute w-1 h-1 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full animate-pulse opacity-70"
+    style={{
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDelay: `${delay}s`,
+      animationDuration: `${2 + Math.random() * 3}s`,
+    }}
+  />
+)
 
 const staffMembers = [
   {
@@ -102,30 +116,75 @@ const staffMembers = [
 ]
 
 export default function StaffPage() {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
+  }, [])
+
+  const handleApplyStaff = () => {
+    window.open("https://discord.gg/eQeHev6p94", "_blank")
+  }
+
   return (
-    <DashboardLayout title="Staff Team">
-      <div className="space-y-12">
-        {/* Header */}
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <Sparkles className="w-8 h-8 text-orange-400 animate-pulse" />
-            <h1 className="text-4xl font-bold text-white">Meet Our Amazing Team</h1>
-            <Sparkles className="w-8 h-8 text-orange-400 animate-pulse" />
+    <div className="min-h-screen bg-black text-white relative overflow-hidden">
+      {/* Advanced Background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-900/10 via-transparent to-purple-900/10"></div>
+
+        {/* Particle System */}
+        <div className="absolute inset-0">
+          {Array.from({ length: 35 }).map((_, i) => (
+            <StaffParticle key={i} delay={i * 0.1} />
+          ))}
+        </div>
+
+        {/* Mouse Follow Glow */}
+        <div
+          className="absolute w-96 h-96 bg-gradient-radial from-blue-500/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-300"
+          style={{
+            left: mousePosition.x - 192,
+            top: mousePosition.y - 192,
+          }}
+        />
+
+        {/* Animated Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.02)_1px,transparent_1px)] bg-[size:60px_60px] animate-pulse"></div>
+      </div>
+
+      <Navigation />
+
+      <div className="relative z-10 container mx-auto px-6 py-16">
+        {/* Header Section */}
+        <div className="text-center mb-16 space-y-6">
+          <div className="relative inline-block">
+            <Shield className="w-16 h-16 text-blue-500 mx-auto mb-4 animate-pulse" />
+            <div className="absolute inset-0 bg-blue-500 blur-2xl opacity-30 animate-pulse"></div>
           </div>
+
+          <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-4">
+            OUR STAFF TEAM
+          </h1>
+
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Our dedicated team of administrators and moderators work tirelessly to keep United Roleplay running smoothly
-            and ensure every player has an incredible experience.
+            Meet our dedicated team of administrators and moderators who work tirelessly to ensure the best roleplay
+            experience for all our players.
           </p>
         </div>
 
         {/* Staff Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 mb-16">
           {staffMembers.map((member, index) => {
             const IconComponent = member.icon
             return (
               <Card
                 key={member.id}
-                className={`relative bg-gray-900/80 backdrop-blur-xl border border-gray-700/50 hover:border-orange-500/50 transition-all duration-500 hover:scale-105 group overflow-hidden ${member.glowColor} hover:shadow-2xl`}
+                className={`relative backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-gray-700/50 hover:border-orange-500/50 transition-all duration-500 hover:scale-105 group overflow-hidden ${member.glowColor} hover:shadow-2xl`}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 {/* Animated Background */}
@@ -201,7 +260,7 @@ export default function StaffPage() {
         </div>
 
         {/* Application Section */}
-        <Card className="relative bg-gradient-to-br from-orange-900/80 to-red-900/80 backdrop-blur-xl border border-orange-500/30 overflow-hidden">
+        <Card className="relative backdrop-blur-xl bg-gradient-to-br from-orange-900/50 to-red-900/50 border border-orange-500/30 overflow-hidden">
           {/* Animated Background */}
           <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-red-500/10 to-pink-500/10 animate-pulse"></div>
 
@@ -244,7 +303,7 @@ export default function StaffPage() {
               ].map((section, index) => (
                 <div
                   key={index}
-                  className="text-center p-6 bg-black/30 backdrop-blur-sm rounded-xl border border-white/10 hover:border-orange-500/30 transition-all duration-300 hover:scale-105 group"
+                  className="text-center p-6 backdrop-blur-sm bg-black/30 rounded-xl border border-white/10 hover:border-orange-500/30 transition-all duration-300 hover:scale-105 group"
                 >
                   <div className="relative mb-4">
                     <div
@@ -271,8 +330,8 @@ export default function StaffPage() {
 
             <div className="text-center">
               <Button
+                onClick={handleApplyStaff}
                 className="relative bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-12 py-4 text-xl font-bold shadow-2xl shadow-orange-500/50 hover:shadow-orange-500/80 transition-all duration-300 hover:scale-110 overflow-hidden group"
-                onClick={() => window.open("https://discord.gg/united-rp", "_blank")}
               >
                 <span className="relative z-10 flex items-center gap-3">
                   <MessageSquare className="w-6 h-6" />
@@ -285,6 +344,12 @@ export default function StaffPage() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
+
+      {/* Floating Elements */}
+      <div className="absolute top-20 left-10 w-4 h-4 bg-blue-500 rounded-full animate-bounce opacity-60"></div>
+      <div className="absolute top-40 right-20 w-3 h-3 bg-purple-500 rounded-full animate-pulse opacity-60"></div>
+      <div className="absolute bottom-20 left-20 w-5 h-5 bg-pink-500 rounded-full animate-ping opacity-40"></div>
+      <div className="absolute bottom-40 right-10 w-2 h-2 bg-cyan-500 rounded-full animate-bounce opacity-60"></div>
+    </div>
   )
 }
