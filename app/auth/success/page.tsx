@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, ArrowRight } from "lucide-react"
+import { CheckCircle, ArrowRight, Home } from "lucide-react"
+import Link from "next/link"
 
 export default function SuccessPage() {
   const { data: session } = useSession()
@@ -14,8 +15,7 @@ export default function SuccessPage() {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          // Redirect to loading page instead of directly to dashboard
-          window.location.href = "/auth/loading"
+          window.location.href = "/dashboard"
           return 0
         }
         return prev - 1
@@ -26,11 +26,21 @@ export default function SuccessPage() {
   }, [])
 
   const goToDashboard = () => {
-    window.location.href = "/auth/loading"
+    window.location.href = "/dashboard"
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 p-4">
+      {/* Navigation */}
+      <div className="absolute top-4 left-4">
+        <Link href="/">
+          <Button variant="outline" className="bg-white">
+            <Home className="w-4 h-4 mr-2" />
+            Home
+          </Button>
+        </Link>
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">

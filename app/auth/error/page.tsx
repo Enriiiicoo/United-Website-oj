@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertTriangle, Home, RefreshCw } from "lucide-react"
+import Link from "next/link"
 
 const errorMessages: Record<string, string> = {
   Configuration: "There is a problem with the server configuration.",
@@ -38,6 +39,16 @@ export default function AuthErrorPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 p-4">
+      {/* Navigation */}
+      <div className="absolute top-4 left-4">
+        <Link href="/">
+          <Button variant="outline" className="bg-white">
+            <Home className="w-4 h-4 mr-2" />
+            Home
+          </Button>
+        </Link>
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">

@@ -3,107 +3,126 @@
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, CheckCircle, AlertTriangle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Loader2, Home } from "lucide-react"
+import Link from "next/link"
 
-export default function AuthCallbackPage() {
+export default function CallbackPage() {
   const { data: session, status } = useSession()
-  const [checking, setChecking] = useState(true)
-  const [message, setMessage] = useState("Checking your account...")
+  const [message, setMessage] = useState("Processing your authentication...")
+  const [isProcessing, setIsProcessing] = useState(true)
 
   useEffect(() => {
-    console.log("🔍 Callback Page - Session status:", status)
-    console.log("📝 Callback Page - Session data:", JSON.stringify(session, null, 2))
+    console.log("🔍 Callback - Session status:", status)
+    console.log("📝 Callback - Session data:", JSON.stringify(session, null, 2))
 
     if (status === "loading") {
-      console.log("⏳ Callback Page - Still loading session...")
+      setMessage("Loading your session...")
       return
     }
 
     if (!session?.user?.discordId) {
-      console.log("❌ Callback Page - No Discord ID found")
-      setMessage("Authentication failed. Redirecting...")
+      console.log("❌ Callback - No Discord ID found")
+      setMessage("Authentication failed. Please try again.")
+      setIsProcessing(false)
       setTimeout(() => {
-        window.location.href = "/auth/signin"
-      }, 2000)
+        window.location.href = "/auth/signup"
+      }, 3000)
       return
     }
 
-    console.log("✅ Callback Page - Discord ID found:", session.user.discordId)
-    checkUserExists()
+    console.log("✅ Callback - Valid session found")
+    processRegistration()
   }, [session, status])
 
-  const checkUserExists = async () => {
+  const processRegistration = async () => {
     try {
-      console.log("🔍 Callback Page - Checking if user exists...")
-      setMessage("Verifying your account...")
+      setMessage("Creating your account...")
 
-      // First, let's refresh the session to make sure it's current
-      const sessionRefresh = await fetch("/api/auth/session-refresh")
-      const sessionData = await sessionRefresh.json()
-      console.log("📝 Callback Page - Session refresh result:", sessionData)
+      // Get game credentials from localStorage if they exist
+      const gameCredentials = localStorage.getItem("gameCredentials")
+      const parsedCredentials = gameCredentials ? JSON.parse(gameCredentials) : null
 
-      if (!sessionData.authenticated) {
-        console.log("❌ Callback Page - Not authenticated after refresh")
-        setMessage("Authentication incomplete. Please try signing in again.")
-        setTimeout(() => {
-          window.location.href = "/auth/signin"
-        }, 3000)
-        return
-      }
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          discordId: session?.user?.discordId,
+          username: session?.user?.name,
+          email: session?.user?.email,
+          discordUsername: session?.user?.discordUsername || session?.user?.name,
+          avatarUrl: session?.user?.image,
+          gameCredentials: parsedCredentials,
+        }),
+      })
 
-      const response = await fetch("/api/user/profile")
-      console.log("📝 Callback Page - Profile API response status:", response.status)
+      const data = await response.json()
 
       if (response.ok) {
-        const data = await response.json()
-        console.log("✅ Callback Page - User exists:", data)
-        setMessage("Account verified! Redirecting to dashboard...")
+        console.log("✅ Registration successful:", data)
+        setMessage("Account created successfully! Redirecting...")
+
+        // Clean up localStorage
+        localStorage.removeItem("gameCredentials")
+
         setTimeout(() => {
-          window.location.href = "/auth/loading"
-        }, 1500)
-      } else if (response.status === 404) {
-        console.log("❌ Callback Page - User not found, redirecting to signup")
-        setMessage("Please complete your registration...")
-        setTimeout(() => {
-          window.location.href = "/auth/signup"
-        }, 1500)
+          window.location.href = "/auth/success"
+        }, 1000)
       } else {
-        const errorData = await response.json()
-        console.error("❌ Callback Page - API error:", errorData)
-        setMessage("Account verification failed. Please try again.")
-        setTimeout(() => {
-          window.location.href = "/auth/signin"
-        }, 3000)
+        console.error("❌ Registration failed:", data)
+        if (data.error === "User already exists") {
+          setMessage("Welcome back! Redirecting to dashboard...")
+          setTimeout(() => {
+            window.location.href = "/dashboard"
+          }, 1000)
+        } else {
+          setMessage("Registration failed. Please try again.")
+          setIsProcessing(false)
+        }
       }
     } catch (error) {
-      console.error("❌ Callback Page - Error:", error)
-      setMessage("Something went wrong. Please try signing in again.")
-      setTimeout(() => {
-        window.location.href = "/auth/signin"
-      }, 3000)
-    } finally {
-      setChecking(false)
+      console.error("Registration error:", error)
+      setMessage("An error occurred. Please try again.")
+      setIsProcessing(false)
     }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 p-4">
+      {/* Navigation */}
+      <div className="absolute top-4 left-4">
+        <Link href="/">
+          <Button variant="outline" className="bg-white">
+            <Home className="w-4 h-4 mr-2" />
+            Home
+          </Button>
+        </Link>
+      </div>
+
       <Card className="w-full max-w-md">
         <CardContent className="p-6 text-center space-y-4">
-          {checking ? (
-            <>
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-600" />
-              <p className="text-gray-600">{message}</p>
-            </>
+          {isProcessing ? (
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-orange-600" />
           ) : (
-            <>
-              {message.includes("Welcome") ? (
-                <CheckCircle className="w-8 h-8 mx-auto text-green-600" />
-              ) : (
-                <AlertTriangle className="w-8 h-8 mx-auto text-orange-600" />
-              )}
-              <p className="text-gray-600">{message}</p>
-            </>
+            <div className="w-8 h-8 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+              <span className="text-red-600">!</span>
+            </div>
+          )}
+          <p className="text-gray-600">{message}</p>
+          {session?.user && (
+            <div className="text-sm text-gray-500">
+              <p>Discord: {session.user.discordUsername || session.user.name}</p>
+              <p>ID: {session.user.discordId}</p>
+            </div>
+          )}
+          {!isProcessing && (
+            <div className="space-y-2">
+              <Link href="/auth/signup">
+                <Button className="w-full bg-orange-600 hover:bg-orange-700">Try Again</Button>
+              </Link>
+            </div>
           )}
         </CardContent>
       </Card>

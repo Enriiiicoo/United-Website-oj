@@ -5,7 +5,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { signOut } from "next-auth/react"
-import { LogOut, User, Mail, MessageSquare, Gamepad2, CheckCircle, Loader2 } from "lucide-react"
+import { LogOut, User, Mail, MessageSquare, Gamepad2, CheckCircle, Loader2, Home } from "lucide-react"
+import Link from "next/link"
 
 interface UserProfile {
   id: number
@@ -76,8 +77,14 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-6 space-y-4">
             <p>Please sign in to access the dashboard.</p>
+            <Link href="/">
+              <Button variant="outline" className="w-full bg-transparent">
+                <Home className="w-4 h-4 mr-2" />
+                Go Home
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -87,9 +94,15 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
           <p>Loading your profile...</p>
+          <Link href="/">
+            <Button variant="outline">
+              <Home className="w-4 h-4 mr-2" />
+              Go Home
+            </Button>
+          </Link>
         </div>
       </div>
     )
@@ -97,7 +110,21 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4">
-      <div className="max-w-2xl mx-auto pt-8 space-y-6">
+      {/* Navigation Bar */}
+      <nav className="max-w-2xl mx-auto mb-6">
+        <div className="flex justify-between items-center">
+          <Link href="/">
+            <Button variant="outline" className="bg-white">
+              <Home className="w-4 h-4 mr-2" />
+              Home
+            </Button>
+          </Link>
+          <h1 className="text-xl font-bold text-orange-600">Dashboard</h1>
+          <div></div> {/* Spacer for centering */}
+        </div>
+      </nav>
+
+      <div className="max-w-2xl mx-auto space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl text-orange-600">Welcome to United Roleplay</CardTitle>
@@ -171,7 +198,7 @@ export default function DashboardPage() {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-2">
             <Button onClick={() => signOut({ callbackUrl: "/" })} variant="outline" className="w-full">
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
