@@ -1,25 +1,26 @@
 /**
- * Runtime-only environment-variable validation.
- * Call this function **inside** a Route Handler / Server Action
- * (never at the top level of a file that is imported during build).
+ * Central place to check for required environment variables.
+ * Importing this file does NOT trigger validation – you must call
+ * `validateEnvironmentVariables()` explicitly inside runtime code.
  */
-export function validateEnvironmentVariables() {
-  const required = [
-    "DB_HOST",
-    "DB_USER",
-    "DB_PASSWORD",
-    "DB_NAME",
-    "DISCORD_CLIENT_ID",
-    "DISCORD_CLIENT_SECRET",
-    "NEXTAUTH_SECRET",
-    "NEXTAUTH_URL",
-  ] as const
 
-  const missing = required.filter((key) => !process.env[key])
+const REQUIRED_VARS = [
+  "DB_HOST",
+  "DB_USER",
+  "DB_PASSWORD",
+  "DB_NAME",
+  "NEXTAUTH_SECRET",
+  "DISCORD_CLIENT_ID",
+  "DISCORD_CLIENT_SECRET",
+  // NEXTAUTH_URL is required by NextAuth but may be injected automatically on Vercel;
+  // include it if you want to enforce it locally.
+  "NEXTAUTH_URL",
+] as const
 
-  if (missing.length) {
-    const message = `❌ Missing required environment variables: ${missing.join(", ")}`
-    console.error(message)
-    throw new Error(message)
+export function validateEnvironmentVariables(vars: readonly string[] = REQUIRED_VARS) {
+  const missing = vars.filter((key) => !process.env[key] || process.env[key]?.length === 0)
+
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(", ")}`)
   }
 }

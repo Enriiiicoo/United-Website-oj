@@ -1,33 +1,32 @@
-import mysql from "mysql2/promise"
-import { validateEnvironmentVariables } from "./env-validation"
+import mysql, { type Pool } from "mysql2/promise"
 
-// Validate environment variables on import
-validateEnvironmentVariables()
-
-const dbConfig = {
-  host: process.env.DB_HOST!,
-  user: process.env.DB_USER!,
-  password: process.env.DB_PASSWORD!,
-  database: process.env.DB_NAME!,
+/**
+ * Create a singleton MySQL connection pool.
+ * We expose it as both the default export **and** a named export (`db`)
+ * so that various modules can import it whichever way they need.
+ *
+ * Environment variables are NOT validated here to avoid build-time failures.
+ * You should validate them at runtime (inside request handlers) instead.
+ */
+const pool: Pool = mysql.createPool({
+  host: process.env.DB_HOST ?? "localhost",
+  user: process.env.DB_USER ?? "root",
+  password: process.env.DB_PASSWORD ?? "",
+  database: process.env.DB_NAME ?? "united_server",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+})
+
+export const db = pool // ← named export
+
+/**
+ * Helper to execute a single SQL statement with optional placeholders.
+ * Returns the typed result array.
+ */
+export async function executeQuery<T = any>(sql: string, params: any[] = []): Promise<T> {
+  const [rows] = await pool.execute(sql, params)
+  return rows as T
 }
 
-const pool = mysql.createPool(dbConfig)
-
-export async function executeQuery(query: string, params: any[] = []) {
-  try {
-    const [results] = await pool.execute(query, params)
-    return results
-  } catch (error) {
-    console.error("Database query error:", error)
-    throw error
-  }
-}
-
-export async function getConnection() {
-  return await pool.getConnection()
-}
-
-export default pool
+export default pool // ← default export
