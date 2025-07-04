@@ -1,6 +1,6 @@
 // Admin configuration - only users with these Discord IDs can access admin features
 const ADMIN_DISCORD_IDS = [
-  "708475369614999572", // Replace with your actual Discord ID
+  "YOUR_DISCORD_ID_HERE", // Replace with your actual Discord ID
   // Add more admin Discord IDs as needed
 ]
 
