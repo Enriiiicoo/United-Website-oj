@@ -1,12 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { executeQuery, queryRow, testConnection } from "@/lib/mysql"
-import { verifyGameCredentials } from "@/lib/game-auth"
+import { verifyGameCredentials, createMTAPasswordHash } from "@/lib/game-auth"
 
 export async function POST(request: NextRequest) {
   try {
     const { username, password, testMode } = await request.json()
 
-    console.log("🔍 Debug Game Auth - Starting debug for:", username)
+    console.log("🔍 Debug Game Auth - Starting MTA debug for:", username)
 
     // Test database connection
     console.log("🔍 Debug Game Auth - Testing database connection...")
@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
     // Search for the username (case-insensitive)
     console.log("🔍 Debug Game Auth - Searching for username...")
     const userSearch = await executeQuery(
-      "SELECT id, username, email, LENGTH(password) as password_length, LENGTH(salt) as salt_length, registerdate FROM accounts WHERE username LIKE ?",
+      "SELECT id, username, email, LENGTH(password) as password_length, LENGTH(salt) as salt_length, registerdate, activated FROM accounts WHERE username LIKE ?",
       [`%${username}%`],
     )
     console.log("📝 Debug Game Auth - User search results:", userSearch)
 
     // Get exact match
     const exactMatch = await queryRow(
-      "SELECT id, username, email, password, salt, registerdate FROM accounts WHERE username = ?",
+      "SELECT id, username, email, password, salt, registerdate, activated FROM accounts WHERE username = ?",
       [username],
     )
     console.log(
@@ -54,13 +54,30 @@ export async function POST(request: NextRequest) {
             email: exactMatch.email,
             hasPassword: !!exactMatch.password,
             hasSalt: !!exactMatch.salt,
+            activated: exactMatch.activated,
+            passwordLength: exactMatch.password?.length,
+            saltLength: exactMatch.salt?.length,
           }
         : "No exact match",
     )
 
     let verificationResult = null
+    let hashTest = null
+
     if (password && exactMatch) {
-      console.log("🔍 Debug Game Auth - Testing password verification...")
+      console.log("🔍 Debug Game Auth - Testing MTA password verification...")
+
+      // Test the MTA hash manually
+      if (exactMatch.salt) {
+        hashTest = {
+          inputPassword: password,
+          salt: exactMatch.salt,
+          expectedHash: exactMatch.password,
+          calculatedHash: createMTAPasswordHash(password, exactMatch.salt),
+          matches: createMTAPasswordHash(password, exactMatch.salt) === exactMatch.password,
+        }
+      }
+
       verificationResult = await verifyGameCredentials(username, password)
     }
 
@@ -78,10 +95,12 @@ export async function POST(request: NextRequest) {
               email: exactMatch.email,
               hasPassword: !!exactMatch.password,
               hasSalt: !!exactMatch.salt,
+              activated: exactMatch.activated,
               passwordLength: exactMatch.password?.length,
               saltLength: exactMatch.salt?.length,
             }
           : null,
+        hashTest,
         verificationResult: verificationResult
           ? {
               success: true,
@@ -110,7 +129,7 @@ export async function GET() {
 
     // Get some sample data (without passwords)
     const sampleAccounts = await executeQuery(
-      "SELECT id, username, email, registerdate FROM accounts ORDER BY registerdate DESC LIMIT 5",
+      "SELECT id, username, email, registerdate, activated FROM accounts ORDER BY registerdate DESC LIMIT 5",
     )
 
     // Get table info

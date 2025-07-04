@@ -6,7 +6,7 @@ import { verifyGameCredentials, checkAccountAlreadyLinked } from "@/lib/game-aut
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("🔍 Registration - Starting registration process...")
+    console.log("🔍 Registration - Starting MTA registration process...")
 
     // Verify the user is authenticated
     const session = await getServerSession(authOptions)
@@ -26,22 +26,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "All fields are required" }, { status: 400 })
     }
 
-    // Game account verification
-    console.log("🔍 Registration - Starting game credential verification...")
+    // Game account verification using MTA method
+    console.log("🔍 Registration - Starting MTA game credential verification...")
     const gameAccount = await verifyGameCredentials(gameUsername, gamePassword)
 
     if (!gameAccount) {
-      console.log("❌ Registration - Game credential verification failed")
+      console.log("❌ Registration - MTA game credential verification failed")
       return NextResponse.json(
         {
-          message: "Invalid game credentials. Please check your username and password.",
-          debug: "Game account not found or password incorrect",
+          message:
+            "Invalid game credentials. Please check your username and password, and ensure your account is activated.",
+          debug: "Game account not found, password incorrect, or account not activated",
         },
         { status: 401 },
       )
     }
 
-    console.log("✅ Registration - Game credentials verified for account ID:", gameAccount.id)
+    console.log("✅ Registration - MTA game credentials verified for account ID:", gameAccount.id)
 
     // Check if game account is already linked
     const isAlreadyLinked = await checkAccountAlreadyLinked(gameAccount.id)
@@ -55,18 +56,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Email verification (optional)
+    // Email verification (make it optional since MTA accounts might have different emails)
     if (gameAccount.email.toLowerCase() !== email.toLowerCase()) {
-      console.log("❌ Registration - Email mismatch")
+      console.log("⚠️ Registration - Email mismatch (allowing anyway)")
       console.log("📝 Registration - Game email:", gameAccount.email)
       console.log("📝 Registration - Provided email:", email)
-      return NextResponse.json(
-        {
-          message: "Email must match your game account email.",
-          debug: `Game account email: ${gameAccount.email}, Provided: ${email}`,
-        },
-        { status: 400 },
-      )
+      // Don't fail, just log the difference
     }
 
     // Check if user already exists
@@ -92,7 +87,7 @@ export async function POST(request: NextRequest) {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         username,
-        email,
+        email, // Use the provided email, not necessarily the game email
         session.user.discordId,
         session.user.discordUsername || session.user.name,
         gameAccount.id,
