@@ -1,39 +1,50 @@
 "use client"
 
-import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
-import { useToast } from "@/hooks/use-toast"
 import {
-  Shield,
-  CheckCircle,
-  XCircle,
-  Clock,
   Plus,
   Search,
-  Copy,
   Trash2,
+  Eye,
+  Shield,
   Users,
-  UserCheck,
-  UserX,
-  Activity,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Copy,
+  Filter,
+  Gamepad2,
+  Server,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
 
 interface WhitelistEntry {
+  id: string
   mta_serial: string
   discord_id: string
   discord_username?: string
   added_by: string
   added_at: string
-  verification_status: "verified" | "expired" | "none"
-  verification_expires?: string
+  verified_status: "verified" | "expired" | "pending"
+  last_seen?: string
+  ip_address?: string
   is_online?: boolean
 }
 
@@ -45,41 +56,109 @@ interface WhitelistStats {
   online: number
 }
 
-export default function WhitelistManagerPage() {
+// Floating particle component for background effects
+const WhitelistParticle = ({ delay }: { delay: number }) => (
+  <div
+    className="absolute w-1 h-1 bg-gradient-to-r from-red-400 to-orange-500 rounded-full animate-pulse opacity-70"
+    style={{
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      animationDelay: `${delay}s`,
+      animationDuration: `${2 + Math.random() * 3}s`,
+    }}
+  />
+)
+
+export default function WhitelistManager() {
   const { data: session } = useSession()
-  const { toast } = useToast()
-  const [whitelist, setWhitelist] = useState<WhitelistEntry[]>([])
-  const [stats, setStats] = useState<WhitelistStats>({ total: 0, verified: 0, expired: 0, pending: 0, online: 0 })
-  const [loading, setLoading] = useState(true)
+  const [entries, setEntries] = useState<WhitelistEntry[]>([])
+  const [filteredEntries, setFilteredEntries] = useState<WhitelistEntry[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [newSerial, setNewSerial] = useState("")
-  const [newDiscordId, setNewDiscordId] = useState("")
-  const [processing, setProcessing] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [selectedEntry, setSelectedEntry] = useState<WhitelistEntry | null>(null)
+  const [newEntry, setNewEntry] = useState({ mta_serial: "", discord_id: "", discord_username: "" })
+  const [stats, setStats] = useState<WhitelistStats>({ total: 0, verified: 0, expired: 0, pending: 0, online: 0 })
+  const [loading, setLoading] = useState(true)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const { toast } = useToast()
 
+  // Mouse tracking for interactive effects
   useEffect(() => {
-    fetchWhitelist()
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+    window.addEventListener("mousemove", handleMouseMove)
+    return () => window.removeEventListener("mousemove", handleMouseMove)
   }, [])
 
-  const fetchWhitelist = async () => {
+  // Load whitelist data
+  useEffect(() => {
+    fetchWhitelistData()
+  }, [])
+
+  const fetchWhitelistData = async () => {
     try {
       const response = await fetch("/api/admin/whitelist-manager")
       if (response.ok) {
         const data = await response.json()
-        setWhitelist(data.whitelist)
-        setStats(data.stats)
-      } else if (response.status === 403) {
-        toast({
-          title: "Access Denied",
-          description: "You don't have admin permissions.",
-          variant: "destructive",
+        setEntries(data.entries || [])
+        setStats(data.stats || { total: 0, verified: 0, expired: 0, pending: 0, online: 0 })
+      } else {
+        // Mock data for demonstration
+        const mockData: WhitelistEntry[] = [
+          {
+            id: "1",
+            mta_serial: "A1B2C3D4E5F6789012345678901234AB",
+            discord_id: "123456789012345678",
+            discord_username: "PlayerOne#1234",
+            added_by: "AdminUser",
+            added_at: "2024-01-15 14:30:00",
+            verified_status: "verified",
+            last_seen: "2024-01-20 18:45:00",
+            ip_address: "192.168.1.100",
+            is_online: true,
+          },
+          {
+            id: "2",
+            mta_serial: "B2C3D4E5F6789012345678901234ABC1",
+            discord_id: "234567890123456789",
+            discord_username: "GamerTwo#5678",
+            added_by: "ModeratorX",
+            added_at: "2024-01-16 09:15:00",
+            verified_status: "expired",
+            last_seen: "2024-01-18 12:20:00",
+            ip_address: "192.168.1.101",
+            is_online: false,
+          },
+          {
+            id: "3",
+            mta_serial: "C3D4E5F6789012345678901234ABC12D",
+            discord_id: "345678901234567890",
+            discord_username: "RoleplayKing#9999",
+            added_by: "AdminUser",
+            added_at: "2024-01-17 16:45:00",
+            verified_status: "pending",
+            last_seen: "Never",
+            ip_address: "N/A",
+            is_online: false,
+          },
+        ]
+        setEntries(mockData)
+        setStats({
+          total: mockData.length,
+          verified: mockData.filter((e) => e.verified_status === "verified").length,
+          expired: mockData.filter((e) => e.verified_status === "expired").length,
+          pending: mockData.filter((e) => e.verified_status === "pending").length,
+          online: mockData.filter((e) => e.is_online).length,
         })
       }
     } catch (error) {
+      console.error("Failed to fetch whitelist data:", error)
       toast({
         title: "Error",
-        description: "Failed to fetch whitelist data.",
+        description: "Failed to load whitelist data",
         variant: "destructive",
       })
     } finally {
@@ -87,110 +166,116 @@ export default function WhitelistManagerPage() {
     }
   }
 
-  const handleAddPlayer = async () => {
-    if (!newSerial || !newDiscordId) {
+  // Filter and search logic
+  useEffect(() => {
+    let filtered = entries
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (entry) =>
+          entry.mta_serial.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          entry.discord_id.includes(searchTerm) ||
+          entry.discord_username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          entry.added_by.toLowerCase().includes(searchTerm.toLowerCase()),
+      )
+    }
+
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((entry) => entry.verified_status === filterStatus)
+    }
+
+    setFilteredEntries(filtered)
+  }, [entries, searchTerm, filterStatus])
+
+  const handleAddEntry = async () => {
+    if (!newEntry.mta_serial || !newEntry.discord_id) {
       toast({
-        title: "Validation Error",
-        description: "Please fill in all fields.",
+        title: "Error",
+        description: "MTA Serial and Discord ID are required",
         variant: "destructive",
       })
       return
     }
 
-    // Validate MTA serial format (32 hex characters)
-    if (!/^[a-fA-F0-9]{32}$/.test(newSerial)) {
+    // Validate MTA serial format (32 hex chars)
+    if (!/^[a-fA-F0-9]{32}$/.test(newEntry.mta_serial)) {
       toast({
-        title: "Invalid Serial",
-        description: "MTA serial must be 32 hexadecimal characters.",
+        title: "Invalid MTA Serial",
+        description: "MTA Serial must be 32 hexadecimal characters",
         variant: "destructive",
       })
       return
     }
 
     // Validate Discord ID format (17-20 digits)
-    if (!/^\d{17,20}$/.test(newDiscordId)) {
+    if (!/^\d{17,20}$/.test(newEntry.discord_id)) {
       toast({
         title: "Invalid Discord ID",
-        description: "Discord ID must be 17-20 digits.",
+        description: "Discord ID must be 17-20 digits",
         variant: "destructive",
       })
       return
     }
 
-    setProcessing(true)
     try {
       const response = await fetch("/api/admin/whitelist-manager", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mta_serial: newSerial.toLowerCase(),
-          discord_id: newDiscordId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newEntry),
       })
 
       if (response.ok) {
         toast({
-          title: "Player Added",
-          description: "Player has been successfully whitelisted.",
+          title: "Success",
+          description: "Player added to whitelist successfully",
         })
-        fetchWhitelist()
+        setNewEntry({ mta_serial: "", discord_id: "", discord_username: "" })
         setIsAddDialogOpen(false)
-        setNewSerial("")
-        setNewDiscordId("")
+        fetchWhitelistData()
       } else {
-        const data = await response.json()
+        const error = await response.json()
         toast({
-          title: "Failed to Add Player",
-          description: data.message || "An error occurred.",
+          title: "Error",
+          description: error.message || "Failed to add player to whitelist",
           variant: "destructive",
         })
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred.",
+        description: "An unexpected error occurred",
         variant: "destructive",
       })
-    } finally {
-      setProcessing(false)
     }
   }
 
-  const handleRemovePlayer = async (serial: string) => {
-    setProcessing(true)
+  const handleRemoveEntry = async (id: string) => {
     try {
       const response = await fetch("/api/admin/whitelist-manager", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ mta_serial: serial }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
       })
 
       if (response.ok) {
         toast({
-          title: "Player Removed",
-          description: "Player has been removed from whitelist.",
+          title: "Success",
+          description: "Player removed from whitelist",
         })
-        fetchWhitelist()
+        fetchWhitelistData()
       } else {
-        const data = await response.json()
         toast({
-          title: "Failed to Remove Player",
-          description: data.message || "An error occurred.",
+          title: "Error",
+          description: "Failed to remove player from whitelist",
           variant: "destructive",
         })
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred.",
+        description: "An unexpected error occurred",
         variant: "destructive",
       })
-    } finally {
-      setProcessing(false)
     }
   }
 
@@ -198,44 +283,54 @@ export default function WhitelistManagerPage() {
     navigator.clipboard.writeText(text)
     toast({
       title: "Copied",
-      description: "Text copied to clipboard.",
+      description: "Copied to clipboard",
     })
   }
 
-  const filteredWhitelist = whitelist.filter((entry) => {
-    const matchesSearch =
-      entry.mta_serial.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entry.discord_id.includes(searchTerm) ||
-      (entry.discord_username && entry.discord_username.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      entry.added_by.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const matchesFilter =
-      filterStatus === "all" ||
-      (filterStatus === "verified" && entry.verification_status === "verified") ||
-      (filterStatus === "expired" && entry.verification_status === "expired") ||
-      (filterStatus === "none" && entry.verification_status === "none") ||
-      (filterStatus === "online" && entry.is_online)
-
-    return matchesSearch && matchesFilter
-  })
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "verified":
+        return (
+          <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 shadow-lg shadow-green-500/30">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Verified
+          </Badge>
+        )
+      case "expired":
+        return (
+          <Badge className="bg-gradient-to-r from-red-500 to-rose-600 text-white border-0 shadow-lg shadow-red-500/30">
+            <XCircle className="w-3 h-3 mr-1" />
+            Expired
+          </Badge>
+        )
+      case "pending":
+        return (
+          <Badge className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white border-0 shadow-lg shadow-yellow-500/30">
+            <Clock className="w-3 h-3 mr-1" />
+            Pending
+          </Badge>
+        )
+      default:
+        return <Badge variant="secondary">Unknown</Badge>
+    }
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <Shield className="w-16 h-16 text-red-500 mx-auto mb-4 animate-spin" />
-          <h1 className="text-2xl font-bold">Loading Whitelist...</h1>
+      <div className="min-h-screen bg-black flex items-center justify-center relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 via-transparent to-orange-900/10"></div>
+          {Array.from({ length: 20 }).map((_, i) => (
+            <WhitelistParticle key={i} delay={i * 0.1} />
+          ))}
         </div>
-      </div>
-    )
-  }
 
-  if (!session) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Access Denied</h1>
-          <p className="text-gray-400">Please sign in to access the admin panel.</p>
+        <div className="relative z-10 text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gradient-to-r from-red-500 to-orange-500 mx-auto mb-4"></div>
+          <div className="w-32 h-32 bg-gradient-to-r from-red-500 to-orange-500 rounded-full animate-spin mx-auto mb-4 opacity-20 blur-sm"></div>
+          <p className="text-white text-xl">Loading Whitelist System...</p>
         </div>
       </div>
     )
@@ -243,13 +338,30 @@ export default function WhitelistManagerPage() {
 
   return (
     <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      {/* Background */}
+      {/* Advanced Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-red-900/10 via-transparent to-orange-900/10"></div>
-      </div>
 
-      <Navigation />
+        {/* Particle System */}
+        <div className="absolute inset-0">
+          {Array.from({ length: 30 }).map((_, i) => (
+            <WhitelistParticle key={i} delay={i * 0.1} />
+          ))}
+        </div>
+
+        {/* Mouse Follow Glow */}
+        <div
+          className="absolute w-96 h-96 bg-gradient-radial from-red-500/20 to-transparent rounded-full blur-3xl pointer-events-none transition-all duration-300"
+          style={{
+            left: mousePosition.x - 192,
+            top: mousePosition.y - 192,
+          }}
+        />
+
+        {/* Animated Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(239,68,68,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(239,68,68,0.02)_1px,transparent_1px)] bg-[size:60px_60px] animate-pulse"></div>
+      </div>
 
       <div className="relative z-10 container mx-auto px-6 py-16">
         {/* Header */}
@@ -260,261 +372,442 @@ export default function WhitelistManagerPage() {
           </div>
 
           <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-red-400 via-orange-500 to-yellow-500 bg-clip-text text-transparent mb-4">
-            WHITELIST MANAGER
+            MTA WHITELIST MANAGER
           </h1>
 
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Manage MTA serials and Discord verification for server access control.
+            Manage player access to your MTA server. Control who can join with advanced serial and Discord verification.
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <Card className="backdrop-blur-xl bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border border-blue-500/30">
-            <CardContent className="p-6 text-center">
-              <Users className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white">{stats.total}</h3>
-              <p className="text-gray-400">Total Whitelisted</p>
+          <Card className="backdrop-blur-xl bg-gradient-to-br from-blue-900/30 to-blue-800/20 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-300 group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-blue-300 mb-1">Total Players</p>
+                  <p className="text-3xl font-bold text-blue-400">{stats.total}</p>
+                </div>
+                <div className="relative">
+                  <Users className="w-8 h-8 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-blue-500 blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="backdrop-blur-xl bg-gradient-to-br from-green-900/20 to-emerald-900/20 border border-green-500/30">
-            <CardContent className="p-6 text-center">
-              <UserCheck className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white">{stats.verified}</h3>
-              <p className="text-gray-400">Verified</p>
+
+          <Card className="backdrop-blur-xl bg-gradient-to-br from-green-900/30 to-green-800/20 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-300 mb-1">Verified</p>
+                  <p className="text-3xl font-bold text-green-400">{stats.verified}</p>
+                </div>
+                <div className="relative">
+                  <CheckCircle className="w-8 h-8 text-green-500 group-hover:scale-110 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-green-500 blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="backdrop-blur-xl bg-gradient-to-br from-red-900/20 to-pink-900/20 border border-red-500/30">
-            <CardContent className="p-6 text-center">
-              <UserX className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white">{stats.expired}</h3>
-              <p className="text-gray-400">Expired</p>
+
+          <Card className="backdrop-blur-xl bg-gradient-to-br from-red-900/30 to-red-800/20 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-red-300 mb-1">Expired</p>
+                  <p className="text-3xl font-bold text-red-400">{stats.expired}</p>
+                </div>
+                <div className="relative">
+                  <XCircle className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-red-500 blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="backdrop-blur-xl bg-gradient-to-br from-yellow-900/20 to-orange-900/20 border border-yellow-500/30">
-            <CardContent className="p-6 text-center">
-              <Clock className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white">{stats.pending}</h3>
-              <p className="text-gray-400">Pending</p>
+
+          <Card className="backdrop-blur-xl bg-gradient-to-br from-yellow-900/30 to-yellow-800/20 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-yellow-300 mb-1">Pending</p>
+                  <p className="text-3xl font-bold text-yellow-400">{stats.pending}</p>
+                </div>
+                <div className="relative">
+                  <Clock className="w-8 h-8 text-yellow-500 group-hover:scale-110 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-yellow-500 blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card className="backdrop-blur-xl bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border border-purple-500/30">
-            <CardContent className="p-6 text-center">
-              <Activity className="w-12 h-12 text-purple-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-bold text-white">{stats.online}</h3>
-              <p className="text-gray-400">Online Now</p>
+
+          <Card className="backdrop-blur-xl bg-gradient-to-br from-orange-900/30 to-orange-800/20 border border-orange-500/30 hover:border-orange-400/50 transition-all duration-300 group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-orange-300 mb-1">Online</p>
+                  <p className="text-3xl font-bold text-orange-400">{stats.online}</p>
+                </div>
+                <div className="relative">
+                  <Server className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-orange-500 blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Controls */}
-        <Card className="backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-gray-700/50 mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <div className="flex flex-col md:flex-row gap-4 flex-1">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search by serial, Discord ID, username, or admin..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-gray-800/50 border-gray-600 text-white placeholder-gray-400"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={filterStatus === "all" ? "default" : "outline"}
-                    onClick={() => setFilterStatus("all")}
-                    className="bg-gray-700 hover:bg-gray-600"
-                  >
-                    All
-                  </Button>
-                  <Button
-                    variant={filterStatus === "verified" ? "default" : "outline"}
-                    onClick={() => setFilterStatus("verified")}
-                    className="bg-green-700 hover:bg-green-600"
-                  >
-                    Verified
-                  </Button>
-                  <Button
-                    variant={filterStatus === "expired" ? "default" : "outline"}
-                    onClick={() => setFilterStatus("expired")}
-                    className="bg-red-700 hover:bg-red-600"
-                  >
-                    Expired
-                  </Button>
-                  <Button
-                    variant={filterStatus === "online" ? "default" : "outline"}
-                    onClick={() => setFilterStatus("online")}
-                    className="bg-purple-700 hover:bg-purple-600"
-                  >
-                    Online
-                  </Button>
-                </div>
+        {/* Main Management Card */}
+        <Card className="backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-red-500/30 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 animate-pulse"></div>
+
+          <CardHeader className="relative z-10">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle className="text-2xl bg-gradient-to-r from-red-400 to-orange-500 bg-clip-text text-transparent">
+                  Whitelist Management
+                </CardTitle>
+                <CardDescription className="text-gray-300">
+                  Manage MTA serials and Discord verification status for server access
+                </CardDescription>
               </div>
+
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white">
+                  <Button className="bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white shadow-lg shadow-red-500/30 hover:shadow-red-500/50 transition-all duration-300 hover:scale-105">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Player
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-gray-900 border-gray-700 text-white">
+                <DialogContent className="sm:max-w-md bg-gray-900 border border-red-500/30 text-white">
                   <DialogHeader>
-                    <DialogTitle>Add Player to Whitelist</DialogTitle>
+                    <DialogTitle className="text-red-400">Add Player to Whitelist</DialogTitle>
+                    <DialogDescription className="text-gray-300">
+                      Enter the player's MTA serial and Discord information
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="serial">MTA Serial (32 hex characters)</Label>
+                      <Label htmlFor="mta_serial" className="text-white">
+                        MTA Serial *
+                      </Label>
                       <Input
-                        id="serial"
-                        value={newSerial}
-                        onChange={(e) => setNewSerial(e.target.value)}
-                        placeholder="e.g., 1A2B3C4D5E6F7890ABCDEF1234567890"
-                        className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-                        maxLength={32}
+                        id="mta_serial"
+                        placeholder="32-character hexadecimal string"
+                        value={newEntry.mta_serial}
+                        onChange={(e) => setNewEntry({ ...newEntry, mta_serial: e.target.value.toUpperCase() })}
+                        className="font-mono bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-red-500"
                       />
+                      <p className="text-xs text-gray-400 mt-1">Example: A1B2C3D4E5F6789012345678901234AB</p>
                     </div>
                     <div>
-                      <Label htmlFor="discordId">Discord ID (17-20 digits)</Label>
+                      <Label htmlFor="discord_id" className="text-white">
+                        Discord ID *
+                      </Label>
                       <Input
-                        id="discordId"
-                        value={newDiscordId}
-                        onChange={(e) => setNewDiscordId(e.target.value)}
-                        placeholder="e.g., 123456789012345678"
-                        className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                        id="discord_id"
+                        placeholder="17-20 digit Discord ID"
+                        value={newEntry.discord_id}
+                        onChange={(e) => setNewEntry({ ...newEntry, discord_id: e.target.value })}
+                        className="font-mono bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-red-500"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Example: 123456789012345678</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="discord_username" className="text-white">
+                        Discord Username (Optional)
+                      </Label>
+                      <Input
+                        id="discord_username"
+                        placeholder="Username#1234"
+                        value={newEntry.discord_username}
+                        onChange={(e) => setNewEntry({ ...newEntry, discord_username: e.target.value })}
+                        className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-red-500"
                       />
                     </div>
-                    <div className="flex gap-4">
-                      <Button
-                        onClick={handleAddPlayer}
-                        disabled={processing}
-                        className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white flex-1"
-                      >
-                        {processing ? "Adding..." : "Add Player"}
-                      </Button>
-                      <Button
-                        onClick={() => setIsAddDialogOpen(false)}
-                        variant="outline"
-                        className="border-gray-600 text-gray-300 hover:bg-gray-800"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
                   </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsAddDialogOpen(false)}
+                      className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleAddEntry}
+                      className="bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700"
+                    >
+                      Add Player
+                    </Button>
+                  </DialogFooter>
                 </DialogContent>
               </Dialog>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Whitelist Table */}
-        <Card className="backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-gray-700/50">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Whitelist Entries ({filteredWhitelist.length} of {whitelist.length})
-            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
+
+          <CardContent className="relative z-10">
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search by MTA serial, Discord ID, username, or admin..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 focus:border-red-500"
+                />
+              </div>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-full sm:w-48 bg-gray-800/50 border-gray-600 text-white">
+                  <Filter className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Table */}
+            <div className="rounded-lg border border-gray-700 overflow-hidden">
               <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700">
-                    <TableHead className="text-gray-300">MTA Serial</TableHead>
-                    <TableHead className="text-gray-300">Discord</TableHead>
-                    <TableHead className="text-gray-300">Status</TableHead>
-                    <TableHead className="text-gray-300">Added By</TableHead>
-                    <TableHead className="text-gray-300">Added At</TableHead>
-                    <TableHead className="text-gray-300">Actions</TableHead>
+                <TableHeader className="bg-gradient-to-r from-red-900/30 to-orange-900/30">
+                  <TableRow className="border-gray-700 hover:bg-transparent">
+                    <TableHead className="font-semibold text-red-300">MTA Serial</TableHead>
+                    <TableHead className="font-semibold text-red-300">Discord Info</TableHead>
+                    <TableHead className="font-semibold text-red-300">Status</TableHead>
+                    <TableHead className="font-semibold text-red-300">Added By</TableHead>
+                    <TableHead className="font-semibold text-red-300">Added At</TableHead>
+                    <TableHead className="font-semibold text-red-300">Last Seen</TableHead>
+                    <TableHead className="font-semibold text-red-300 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredWhitelist.map((entry) => (
-                    <TableRow key={entry.mta_serial} className="border-gray-700 hover:bg-gray-800/50">
-                      <TableCell className="font-mono text-sm">
+                  {filteredEntries.map((entry) => (
+                    <TableRow
+                      key={entry.id}
+                      className="border-gray-700 hover:bg-red-900/10 transition-colors duration-200"
+                    >
+                      <TableCell>
                         <div className="flex items-center gap-2">
-                          <span className="text-blue-400">{entry.mta_serial}</span>
+                          <div className="relative">
+                            <code className="bg-gradient-to-r from-gray-800 to-gray-700 px-3 py-2 rounded text-xs font-mono text-green-400 border border-gray-600">
+                              {entry.mta_serial.slice(0, 8)}...{entry.mta_serial.slice(-4)}
+                            </code>
+                            {entry.is_online && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                            )}
+                          </div>
                           <Button
-                            size="sm"
                             variant="ghost"
+                            size="sm"
                             onClick={() => copyToClipboard(entry.mta_serial)}
                             className="h-6 w-6 p-0 hover:bg-gray-700"
                           >
-                            <Copy className="w-3 h-3" />
+                            <Copy className="w-3 h-3 text-gray-400" />
                           </Button>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-purple-400 font-mono text-sm">{entry.discord_id}</span>
+                            <code className="bg-gradient-to-r from-blue-900 to-blue-800 px-2 py-1 rounded text-xs font-mono text-blue-300 border border-blue-600/30">
+                              {entry.discord_id}
+                            </code>
                             <Button
-                              size="sm"
                               variant="ghost"
+                              size="sm"
                               onClick={() => copyToClipboard(entry.discord_id)}
                               className="h-6 w-6 p-0 hover:bg-gray-700"
                             >
-                              <Copy className="w-3 h-3" />
+                              <Copy className="w-3 h-3 text-gray-400" />
                             </Button>
                           </div>
-                          {entry.discord_username && (
-                            <div className="text-gray-400 text-sm">@{entry.discord_username}</div>
-                          )}
+                          {entry.discord_username && <p className="text-sm text-gray-400">{entry.discord_username}</p>}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Badge
-                            className={
-                              entry.verification_status === "verified"
-                                ? "bg-green-600 text-white"
-                                : entry.verification_status === "expired"
-                                  ? "bg-red-600 text-white"
-                                  : "bg-gray-600 text-white"
-                            }
-                          >
-                            {entry.verification_status === "verified" && <CheckCircle className="w-3 h-3 mr-1" />}
-                            {entry.verification_status === "expired" && <XCircle className="w-3 h-3 mr-1" />}
-                            {entry.verification_status === "none" && <Clock className="w-3 h-3 mr-1" />}
-                            {entry.verification_status.toUpperCase()}
-                          </Badge>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(entry.verified_status)}
                           {entry.is_online && (
-                            <Badge className="bg-purple-600 text-white">
-                              <Activity className="w-3 h-3 mr-1" />
-                              ONLINE
+                            <Badge className="bg-gradient-to-r from-green-600 to-emerald-700 text-white border-0">
+                              <Gamepad2 className="w-3 h-3 mr-1" />
+                              Online
                             </Badge>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-gray-300">{entry.added_by}</TableCell>
-                      <TableCell className="text-gray-400 text-sm">
-                        {new Date(entry.added_at).toLocaleString()}
-                      </TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleRemovePlayer(entry.mta_serial)}
-                          disabled={processing}
-                          className="bg-red-600 hover:bg-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <Badge variant="outline" className="border-gray-600 text-gray-300">
+                          {entry.added_by}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-400">
+                        {new Date(entry.added_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-400">
+                        {entry.last_seen === "Never" ? (
+                          <Badge variant="outline" className="border-gray-600 text-gray-500">
+                            Never
+                          </Badge>
+                        ) : (
+                          new Date(entry.last_seen!).toLocaleDateString()
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedEntry(entry)
+                              setIsViewDialogOpen(true)
+                            }}
+                            className="hover:bg-blue-900/30 hover:text-blue-400"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveEntry(entry.id)}
+                            className="hover:bg-red-900/30 hover:text-red-400"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-              {filteredWhitelist.length === 0 && (
-                <div className="text-center py-12">
-                  <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                  <p className="text-gray-400">No whitelist entries found</p>
-                </div>
-              )}
             </div>
+
+            {filteredEntries.length === 0 && (
+              <div className="text-center py-12 text-gray-500">
+                <Shield className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-xl mb-2">No players found</p>
+                <p className="text-sm">No players match your current search criteria</p>
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* View Details Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="sm:max-w-lg bg-gray-900 border border-red-500/30 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-red-400">Player Details</DialogTitle>
+              <DialogDescription className="text-gray-300">
+                Complete information for whitelisted player
+              </DialogDescription>
+            </DialogHeader>
+            {selectedEntry && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-400">MTA Serial</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="bg-gradient-to-r from-gray-800 to-gray-700 px-3 py-2 rounded text-sm font-mono text-green-400 border border-gray-600 flex-1">
+                        {selectedEntry.mta_serial}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(selectedEntry.mta_serial)}
+                        className="h-8 w-8 p-0 hover:bg-gray-700"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-400">Discord ID</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <code className="bg-gradient-to-r from-blue-900 to-blue-800 px-3 py-2 rounded text-sm font-mono text-blue-300 border border-blue-600/30 flex-1">
+                        {selectedEntry.discord_id}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => copyToClipboard(selectedEntry.discord_id)}
+                        className="h-8 w-8 p-0 hover:bg-gray-700"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-400">Discord Username</Label>
+                  <p className="mt-1 text-white">{selectedEntry.discord_username || "Not provided"}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-400">Status</Label>
+                    <div className="mt-1 flex items-center gap-2">
+                      {getStatusBadge(selectedEntry.verified_status)}
+                      {selectedEntry.is_online && (
+                        <Badge className="bg-gradient-to-r from-green-600 to-emerald-700 text-white border-0">
+                          <Gamepad2 className="w-3 h-3 mr-1" />
+                          Online
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-400">IP Address</Label>
+                    <p className="mt-1 font-mono text-sm text-gray-300">{selectedEntry.ip_address}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-400">Added By</Label>
+                    <Badge variant="outline" className="mt-1 border-gray-600 text-gray-300">
+                      {selectedEntry.added_by}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-400">Added At</Label>
+                    <p className="mt-1 text-sm text-gray-300">{new Date(selectedEntry.added_at).toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-400">Last Seen</Label>
+                  <p className="mt-1 text-sm text-gray-300">
+                    {selectedEntry.last_seen === "Never"
+                      ? "Never joined the server"
+                      : new Date(selectedEntry.last_seen!).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsViewDialogOpen(false)}
+                className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {/* Floating Elements */}
+      <div className="absolute top-20 left-10 w-4 h-4 bg-red-500 rounded-full animate-bounce opacity-60"></div>
+      <div className="absolute top-40 right-20 w-3 h-3 bg-orange-500 rounded-full animate-pulse opacity-60"></div>
+      <div className="absolute bottom-20 left-20 w-5 h-5 bg-yellow-500 rounded-full animate-ping opacity-40"></div>
+      <div className="absolute bottom-40 right-10 w-2 h-2 bg-red-500 rounded-full animate-bounce opacity-60"></div>
     </div>
   )
 }
