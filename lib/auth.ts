@@ -1,91 +1,43 @@
 import type { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import mysql from "mysql2/promise"
-import crypto from "crypto"
+import DiscordProvider from "next-auth/providers/discord"
+
+if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET) {
+  throw new Error("Missing Discord OAuth credentials")
+}
+
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error("Missing NEXTAUTH_SECRET")
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          return null
-        }
-
-        try {
-          // Create database connection
-          const connection = await mysql.createConnection({
-            host: process.env.DB_HOST,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME,
-          })
-
-          try {
-            // Check if user exists in game accounts table
-            const [rows] = await connection.execute(
-              "SELECT id, username, password, salt, email FROM accounts WHERE username = ?",
-              [credentials.username],
-            )
-
-            const accounts = rows as any[]
-            if (accounts.length === 0) {
-              return null
-            }
-
-            const account = accounts[0]
-
-            // Verify password using MD5 with salt (same as game)
-            const hashedPassword = crypto
-              .createHash("md5")
-              .update(credentials.password + account.salt)
-              .digest("hex")
-
-            if (hashedPassword !== account.password) {
-              return null
-            }
-
-            return {
-              id: account.id.toString(),
-              name: account.username,
-              email: account.email || `${account.username}@unitedserver.com`,
-              username: account.username,
-            }
-          } finally {
-            await connection.end()
-          }
-        } catch (error) {
-          console.error("Auth error:", error)
-          return null
-        }
-      },
+    DiscordProvider({
+      clientId: process.env.DISCORD_CLIENT_ID,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET,
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/auth/signin",
-  },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.username = user.username
-        token.gameAccountId = user.id
+    async jwt({ token, account, profile }) {
+      if (account?.provider === "discord" && profile) {
+        token.discordId = profile.id
+        token.discordUsername = profile.username
+        token.discordAvatar = profile.avatar
       }
       return token
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.sub
-        session.user.username = token.username as string
-        session.user.gameAccountId = token.gameAccountId as string
+      if (token.discordId) {
+        session.user.discordId = token.discordId as string
+        session.user.discordUsername = token.discordUsername as string
+        session.user.discordAvatar = token.discordAvatar as string
       }
       return session
     },
   },
+  pages: {
+    signIn: "/auth/signin",
+    error: "/auth/error",
+  },
+  debug: process.env.NODE_ENV === "development",
+  secret: process.env.NEXTAUTH_SECRET,
 }

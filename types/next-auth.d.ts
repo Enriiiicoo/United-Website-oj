@@ -1,3 +1,5 @@
+import "next-auth"
+
 declare module "next-auth" {
   interface Session {
     user: {
@@ -5,23 +7,17 @@ declare module "next-auth" {
       name?: string | null
       email?: string | null
       image?: string | null
-      username: string
-      gameAccountId: string
+      discordId?: string
+      discordUsername?: string
+      discordAvatar?: string
     }
-  }
-
-  interface User {
-    id: string
-    name?: string | null
-    email?: string | null
-    image?: string | null
-    username: string
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    username: string
-    gameAccountId: string
+    discordId?: string
+    discordUsername?: string
+    discordAvatar?: string
   }
 }

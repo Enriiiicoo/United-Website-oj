@@ -1,203 +1,229 @@
 "use client"
 
-import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Navigation } from "@/components/navigation"
-import { AnimatedSection } from "@/components/animated-section"
-import { TiltCard } from "@/components/tilt-card"
-import { User, Link2, Calendar, Shield, Crown, ExternalLink, AlertCircle } from "lucide-react"
+import type React from "react"
 
-interface LinkedAccount {
-  gameAccount: {
-    id: number
-    username: string
-  }
-  linkedAt: string
+import { useSession } from "next-auth/react"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { signOut } from "next-auth/react"
+import { LogOut, User, Mail, MessageSquare, Gamepad2, CheckCircle, Loader2 } from "lucide-react"
+
+interface UserProfile {
+  id: number
+  username: string
+  email: string
+  discordId: string
+  discordUsername: string
+  gameCharacterId?: string
+  avatarUrl?: string
+  isVerified: boolean
+  isActive: boolean
+  createdAt: string
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const [linkedAccount, setLinkedAccount] = useState<LinkedAccount | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { data: session } = useSession()
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [gameId, setGameId] = useState("")
+  const [linkingGame, setLinkingGame] = useState(false)
+  const [message, setMessage] = useState("")
 
   useEffect(() => {
-    if (status === "loading") return
-    if (!session) {
-      router.push("/auth/signin")
-      return
+    if (session?.user?.discordId) {
+      fetchProfile()
     }
+  }, [session])
 
-    // Fetch linked account info
-    fetchLinkedAccount()
-  }, [session, status, router])
-
-  const fetchLinkedAccount = async () => {
+  const fetchProfile = async () => {
     try {
-      const response = await fetch("/api/linked-account")
+      const response = await fetch("/api/user/profile")
       if (response.ok) {
         const data = await response.json()
-        setLinkedAccount(data)
+        setProfile(data.user)
+        setGameId(data.user.gameCharacterId || "")
       }
     } catch (error) {
-      console.error("Failed to fetch linked account:", error)
+      console.error("Failed to fetch profile:", error)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  if (status === "loading" || isLoading) {
+  const handleLinkGame = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!gameId.trim()) return
+
+    setLinkingGame(true)
+    setMessage("")
+
+    try {
+      const response = await fetch("/api/user/link-game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gameCharacterId: gameId }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setMessage("Game account linked successfully!")
+        fetchProfile() // Refresh profile
+      } else {
+        setMessage(result.message || "Failed to link game account")
+      }
+    } catch (error) {
+      setMessage("Failed to link game account")
+    } finally {
+      setLinkingGame(false)
+    }
+  }
+
+  if (!session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-900 via-orange-800 to-orange-600 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <Card>
+          <CardContent className="p-6">
+            <p>Please sign in to access the dashboard.</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
-  if (!session) {
-    return null
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>Loading your profile...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-900 via-orange-800 to-orange-600 relative overflow-hidden">
-      {/* Background elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-32 h-32 bg-orange-400/20 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-48 h-48 bg-orange-300/20 rounded-full blur-xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-500/10 rounded-full blur-2xl animate-pulse delay-500"></div>
-      </div>
-
-      <Navigation />
-
-      <div className="container mx-auto px-4 py-16 relative z-10">
-        <AnimatedSection animation="slideUp">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600/30 to-orange-400/30 backdrop-blur-xl border border-orange-500/30 rounded-full px-6 py-3 mb-6">
-              <Crown className="h-6 w-6 text-orange-300" />
-              <span className="text-orange-200 font-semibold">DASHBOARD</span>
-            </div>
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Welcome back, <span className="text-orange-300">{session.user?.name}</span>
-            </h1>
-            <p className="text-xl text-orange-100 opacity-90">Manage your account and view your game statistics</p>
-          </div>
-        </AnimatedSection>
-
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {/* Discord Account Card */}
-          <AnimatedSection animation="slideUp" delay={200}>
-            <TiltCard>
-              <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30 h-full">
-                <CardHeader>
-                  <CardTitle className="text-xl text-white flex items-center gap-3">
-                    <User className="h-6 w-6 text-blue-400" />
-                    Discord Account
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={session.user?.image || "/placeholder-user.jpg"}
-                      alt="Discord avatar"
-                      className="w-12 h-12 rounded-full"
-                    />
-                    <div>
-                      <p className="text-white font-medium">{session.user?.name}</p>
-                      <p className="text-orange-300 text-sm">ID: {session.user.discordId}</p>
-                    </div>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 p-4">
+      <div className="max-w-2xl mx-auto pt-8 space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl text-orange-600">Welcome to United Roleplay</CardTitle>
+            <CardDescription>
+              {profile ? "Your account is active and verified!" : "Complete your profile setup"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center space-x-4">
+              {session.user.image && (
+                <img src={session.user.image || "/placeholder.svg"} alt="Profile" className="w-16 h-16 rounded-full" />
+              )}
+              <div>
+                <h3 className="text-lg font-semibold">{profile?.username || session.user.name}</h3>
+                <p className="text-gray-600">{profile?.email || session.user.email}</p>
+                {profile?.isVerified && (
+                  <div className="flex items-center text-green-600 text-sm">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Verified Account
                   </div>
-                  <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Connected</Badge>
-                </CardContent>
-              </Card>
-            </TiltCard>
-          </AnimatedSection>
+                )}
+              </div>
+            </div>
 
-          {/* Game Account Card */}
-          <AnimatedSection animation="slideUp" delay={400}>
-            <TiltCard>
-              <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30 h-full">
-                <CardHeader>
-                  <CardTitle className="text-xl text-white flex items-center gap-3">
-                    <Shield className="h-6 w-6 text-orange-400" />
-                    Game Account
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {linkedAccount ? (
-                    <>
-                      <div>
-                        <p className="text-white font-medium">{linkedAccount.gameAccount.username}</p>
-                        <p className="text-orange-300 text-sm">ID: {linkedAccount.gameAccount.id}</p>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-orange-200">
-                        <Calendar className="h-4 w-4" />
-                        Linked: {new Date(linkedAccount.linkedAt).toLocaleDateString()}
-                      </div>
-                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
-                        <Link2 className="h-3 w-3 mr-1" />
-                        Linked
-                      </Badge>
-                    </>
+            <div className="grid gap-4">
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <User className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium">Username</p>
+                  <p className="text-sm text-gray-600">{profile?.username || session.user.name}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <Mail className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium">Email</p>
+                  <p className="text-sm text-gray-600">{profile?.email || session.user.email}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <MessageSquare className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="font-medium">Discord</p>
+                  <p className="text-sm text-gray-600">{profile?.discordUsername || session.user.name}</p>
+                  <p className="text-xs text-green-600">✓ Connected & Verified</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <Gamepad2 className="w-5 h-5 text-gray-600" />
+                <div className="flex-1">
+                  <p className="font-medium">Game Account</p>
+                  {profile?.gameCharacterId ? (
+                    <div>
+                      <p className="text-sm text-gray-600">Character ID: {profile.gameCharacterId}</p>
+                      <p className="text-xs text-green-600">✓ Linked</p>
+                    </div>
                   ) : (
-                    <>
-                      <div className="flex items-center gap-2 text-orange-300">
-                        <AlertCircle className="h-5 w-5" />
-                        <span>No game account linked</span>
-                      </div>
-                      <Button
-                        onClick={() => router.push("/link-account")}
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                      >
-                        Link Game Account
-                      </Button>
-                    </>
+                    <p className="text-sm text-gray-500">Not linked</p>
                   )}
-                </CardContent>
-              </Card>
-            </TiltCard>
-          </AnimatedSection>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Quick Actions Card */}
-          <AnimatedSection animation="slideUp" delay={600}>
-            <TiltCard>
-              <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30 h-full">
-                <CardHeader>
-                  <CardTitle className="text-xl text-white flex items-center gap-3">
-                    <ExternalLink className="h-6 w-6 text-orange-400" />
-                    Quick Actions
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button
-                    onClick={() => router.push("/verify")}
-                    variant="outline"
-                    className="w-full bg-black/30 border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
-                  >
-                    Verify Access
-                  </Button>
-                  <Button
-                    onClick={() => router.push("/rules")}
-                    variant="outline"
-                    className="w-full bg-black/30 border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
-                  >
-                    Server Rules
-                  </Button>
-                  <Button
-                    onClick={() => window.open("https://discord.gg/eQeHev6p94", "_blank")}
-                    variant="outline"
-                    className="w-full bg-black/30 border-orange-500/30 text-orange-200 hover:bg-orange-500/20"
-                  >
-                    Join Discord
-                  </Button>
-                </CardContent>
-              </Card>
-            </TiltCard>
-          </AnimatedSection>
-        </div>
+        {/* Game Account Linking */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Link Game Account</CardTitle>
+            <CardDescription>Connect your in-game character for full access</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {message && (
+              <Alert className="mb-4">
+                <AlertDescription>{message}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleLinkGame} className="space-y-4">
+              <div>
+                <Label htmlFor="gameId">Game Character ID</Label>
+                <Input
+                  id="gameId"
+                  type="text"
+                  placeholder="Enter your character ID"
+                  value={gameId}
+                  onChange={(e) => setGameId(e.target.value)}
+                  disabled={linkingGame}
+                />
+              </div>
+              <Button type="submit" disabled={linkingGame || !gameId.trim()}>
+                {linkingGame ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Linking...
+                  </>
+                ) : (
+                  "Link Game Account"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <Button onClick={() => signOut({ callbackUrl: "/" })} variant="outline" className="w-full">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
