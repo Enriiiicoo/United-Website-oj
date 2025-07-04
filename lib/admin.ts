@@ -1,7 +1,7 @@
-// Admin configuration - only users with these Discord IDs can access admin features
+// Admin configuration - Discord IDs that have admin access
 const ADMIN_DISCORD_IDS = [
-  "708475369614999572", // Your Discord ID (anaas___)
-  // Add more admin Discord IDs as needed
+  "708475369614999572", // Your Discord ID
+  // Add more admin Discord IDs here as needed
 ]
 
 export function isAdmin(discordId: string | undefined): boolean {
@@ -9,22 +9,17 @@ export function isAdmin(discordId: string | undefined): boolean {
   return ADMIN_DISCORD_IDS.includes(discordId)
 }
 
-export function requireAdmin(discordId: string | undefined) {
+export function requireAdmin(discordId: string | undefined): boolean {
   if (!isAdmin(discordId)) {
     throw new Error("Admin access required")
   }
+  return true
 }
 
-// Get admin level (for future role-based permissions)
-export function getAdminLevel(discordId: string | undefined): "none" | "admin" | "super_admin" {
+// Get admin level (for future use)
+export function getAdminLevel(discordId: string | undefined): "none" | "admin" | "superadmin" {
   if (!discordId) return "none"
-
-  // Super admins (full access)
-  const SUPER_ADMIN_IDS = ["708475369614999572"]
-  if (SUPER_ADMIN_IDS.includes(discordId)) return "super_admin"
-
-  // Regular admins
+  if (discordId === "708475369614999572") return "superadmin" // Your ID as superadmin
   if (ADMIN_DISCORD_IDS.includes(discordId)) return "admin"
-
   return "none"
 }
