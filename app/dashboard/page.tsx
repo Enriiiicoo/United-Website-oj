@@ -1,28 +1,14 @@
 "use client"
 
 import { Navigation } from "@/components/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
 import { useSession } from "next-auth/react"
-import {
-  User,
-  Crown,
-  Star,
-  Clock,
-  Calendar,
-  Trophy,
-  Zap,
-  Users,
-  Car,
-  Home,
-  Sparkles,
-  Shield,
-  Award,
-} from "lucide-react"
 import { useState, useEffect } from "react"
+import { useToast } from "@/hooks/use-toast"
+import { User, Crown, Star, Clock, Calendar, Trophy, Shield, DollarSign, Plus } from "lucide-react"
 
 // Floating particle component
 const DashboardParticle = ({ delay }: { delay: number }) => (
@@ -37,9 +23,31 @@ const DashboardParticle = ({ delay }: { delay: number }) => (
   />
 )
 
+interface Character {
+  id: number
+  name: string
+  money: number
+  bankMoney: number
+  hoursPlayed: number
+  age: number
+  gender: string
+  skin: number
+  weight: number
+  height: number
+  description: string
+  factionId: number
+  factionRank: number
+  lastLogin: string
+  creationDate: string
+  active: boolean
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession()
+  const { toast } = useToast()
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [character, setCharacter] = useState<Character | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -49,38 +57,48 @@ export default function DashboardPage() {
     return () => window.removeEventListener("mousemove", handleMouseMove)
   }, [])
 
-  // Mock user data - in real app this would come from your database
-  const userData = {
-    level: 42,
-    experience: 8750,
-    nextLevelExp: 10000,
-    playTime: "127 hours",
-    joinDate: "March 15, 2024",
-    vipStatus: "Gold VIP",
-    reputation: 95,
-    achievements: 23,
-    vehicles: 8,
-    properties: 2,
-    bankBalance: "$2,450,000",
-    cash: "$125,000",
+  useEffect(() => {
+    if (session) {
+      fetchCharacter()
+    }
+  }, [session])
+
+  const fetchCharacter = async () => {
+    try {
+      const response = await fetch("/api/character")
+      if (response.ok) {
+        const data = await response.json()
+        setCharacter(data.character)
+      }
+    } catch (error) {
+      console.error("Failed to fetch character:", error)
+    } finally {
+      setLoading(false)
+    }
   }
-
-  const recentActivity = [
-    { action: "Completed delivery mission", time: "2 hours ago", reward: "+$15,000", icon: Trophy },
-    { action: "Purchased new vehicle", time: "1 day ago", cost: "-$85,000", icon: Car },
-    { action: "Leveled up to Level 42", time: "2 days ago", reward: "+500 XP", icon: Star },
-    { action: "Joined VIP Gold", time: "1 week ago", status: "Active", icon: Crown },
-  ]
-
-  const achievements = [
-    { name: "First Steps", description: "Complete your first mission", unlocked: true, icon: Star },
-    { name: "Speed Demon", description: "Win 10 street races", unlocked: true, icon: Zap },
-    { name: "Property Mogul", description: "Own 5 properties", unlocked: false, icon: Home },
-    { name: "Social Butterfly", description: "Make 50 friends", unlocked: true, icon: Users },
-  ]
 
   const handleJoinDiscord = () => {
     window.open("https://discord.gg/eQeHev6p94", "_blank")
+  }
+
+  const handleCreateCharacter = () => {
+    toast({
+      title: "Character Creation",
+      description: "Character creation is available in-game. Join our server to create your character!",
+    })
+    handleJoinDiscord()
+  }
+
+  const formatMoney = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount)
+  }
+
+  const formatHours = (hours: number) => {
+    if (hours < 1) return "< 1 hour"
+    return `${hours} hour${hours !== 1 ? "s" : ""}`
   }
 
   if (!session) {
@@ -162,40 +180,38 @@ export default function DashboardPage() {
               <div className="flex-1 text-center md:text-left">
                 <h2 className="text-4xl font-bold text-white mb-2">{session.user?.name}</h2>
                 <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-4">
-                  <Badge className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-4 py-2 text-sm shadow-lg">
-                    <Crown className="w-4 h-4 mr-2" />
-                    {userData.vipStatus}
-                  </Badge>
                   <Badge className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 text-sm shadow-lg">
-                    <Star className="w-4 h-4 mr-2" />
-                    Level {userData.level}
+                    <User className="w-4 h-4 mr-2" />
+                    Discord User
                   </Badge>
-                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 text-sm shadow-lg">
-                    <Shield className="w-4 h-4 mr-2" />
-                    Rep: {userData.reputation}%
-                  </Badge>
+                  {character && (
+                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 text-sm shadow-lg">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Character Active
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="text-center p-3 bg-gray-800/50 rounded-lg backdrop-blur-sm">
                     <Clock className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
                     <p className="text-gray-400">Play Time</p>
-                    <p className="text-white font-semibold">{userData.playTime}</p>
+                    <p className="text-white font-semibold">{character ? formatHours(character.hoursPlayed) : "N/A"}</p>
                   </div>
                   <div className="text-center p-3 bg-gray-800/50 rounded-lg backdrop-blur-sm">
                     <Calendar className="w-5 h-5 text-blue-400 mx-auto mb-1" />
-                    <p className="text-gray-400">Joined</p>
-                    <p className="text-white font-semibold">{userData.joinDate}</p>
+                    <p className="text-gray-400">Character Age</p>
+                    <p className="text-white font-semibold">{character ? `${character.age} years` : "N/A"}</p>
                   </div>
                   <div className="text-center p-3 bg-gray-800/50 rounded-lg backdrop-blur-sm">
-                    <Trophy className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
-                    <p className="text-gray-400">Achievements</p>
-                    <p className="text-white font-semibold">{userData.achievements}</p>
+                    <User className="w-5 h-5 text-purple-400 mx-auto mb-1" />
+                    <p className="text-gray-400">Gender</p>
+                    <p className="text-white font-semibold">{character ? character.gender : "N/A"}</p>
                   </div>
                   <div className="text-center p-3 bg-gray-800/50 rounded-lg backdrop-blur-sm">
-                    <Car className="w-5 h-5 text-purple-400 mx-auto mb-1" />
-                    <p className="text-gray-400">Vehicles</p>
-                    <p className="text-white font-semibold">{userData.vehicles}</p>
+                    <Star className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
+                    <p className="text-gray-400">Character ID</p>
+                    <p className="text-white font-semibold">{character ? `#${character.id}` : "N/A"}</p>
                   </div>
                 </div>
               </div>
@@ -203,204 +219,71 @@ export default function DashboardPage() {
           </CardHeader>
         </Card>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {[
-            {
-              title: "Bank Balance",
-              value: userData.bankBalance,
-              icon: Trophy,
-              color: "from-green-500 to-emerald-600",
-              glowColor: "shadow-green-500/50",
-            },
-            {
-              title: "Cash on Hand",
-              value: userData.cash,
-              icon: Zap,
-              color: "from-yellow-500 to-orange-600",
-              glowColor: "shadow-yellow-500/50",
-            },
-            {
-              title: "Properties",
-              value: userData.properties.toString(),
-              icon: Home,
-              color: "from-blue-500 to-cyan-600",
-              glowColor: "shadow-blue-500/50",
-            },
-            {
-              title: "Reputation",
-              value: `${userData.reputation}%`,
-              icon: Star,
-              color: "from-purple-500 to-violet-600",
-              glowColor: "shadow-purple-500/50",
-            },
-          ].map((stat, index) => {
-            const IconComponent = stat.icon
-            return (
-              <Card
-                key={index}
-                className={`backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-gray-700/50 hover:border-cyan-500/50 transition-all duration-500 hover:scale-105 group ${stat.glowColor} hover:shadow-2xl`}
-              >
-                <CardContent className="p-6 text-center">
-                  <div className="relative mb-4">
-                    <div
-                      className={`w-16 h-16 bg-gradient-to-br ${stat.color} rounded-2xl mx-auto flex items-center justify-center shadow-lg ${stat.glowColor} group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}
-                    >
-                      <IconComponent className="w-8 h-8 text-white" />
-                    </div>
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${stat.color} rounded-2xl blur-xl opacity-30 group-hover:opacity-60 transition-opacity duration-300`}
-                    ></div>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-400 mb-2">{stat.title}</h3>
-                  <p className="text-2xl font-bold text-white group-hover:text-cyan-300 transition-colors duration-300">
-                    {stat.value}
-                  </p>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-
-        {/* Experience Progress */}
-        <Card className="backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-gray-700/50 mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-white">
-              <Star className="w-6 h-6 text-yellow-400" />
-              Experience Progress
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Level {userData.level} • {userData.experience} / {userData.nextLevelExp} XP
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Progress value={(userData.experience / userData.nextLevelExp) * 100} className="h-4 bg-gray-800" />
-            <p className="text-sm text-gray-400 mt-2">
-              {userData.nextLevelExp - userData.experience} XP until next level
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity & Achievements */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Activity */}
-          <Card className="backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-gray-700/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-white">
-                <Clock className="w-6 h-6 text-cyan-400" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {recentActivity.map((activity, index) => {
-                const IconComponent = activity.icon
+        {character ? (
+          <>
+            {/* Character Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {[
+                {
+                  title: "Cash",
+                  value: formatMoney(character.money),
+                  icon: DollarSign,
+                  color: "from-green-500 to-emerald-600",
+                  glowColor: "shadow-green-500/50",
+                },
+                {
+                  title: "Bank Balance",
+                  value: formatMoney(character.bankMoney),
+                  icon: Trophy,
+                  color: "from-blue-500 to-cyan-600",
+                  glowColor: "shadow-blue-500/50",
+                },
+                {
+                  title: "Total Wealth",
+                  value: formatMoney(character.money + character.bankMoney),
+                  icon: Crown,
+                  color: "from-yellow-500 to-orange-600",
+                  glowColor: "shadow-yellow-500/50",
+                },
+                {
+                  title: "Hours Played",
+                  value: formatHours(character.hoursPlayed),
+                  icon: Clock,
+                  color: "from-purple-500 to-violet-600",
+                  glowColor: "shadow-purple-500/50",
+                },
+              ].map((stat, index) => {
+                const IconComponent = stat.icon
                 return (
-                  <div
+                  <Card
                     key={index}
-                    className="flex items-center space-x-4 p-4 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition-all duration-300 group"
+                    className={`backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-gray-700/50 hover:border-cyan-500/50 transition-all duration-500 hover:scale-105 group ${stat.glowColor} hover:shadow-2xl`}
                   >
-                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                      <IconComponent className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">{activity.action}</p>
-                      <p className="text-gray-400 text-sm">{activity.time}</p>
-                    </div>
-                    <div className="text-right">
-                      {activity.reward && <p className="text-green-400 font-semibold">{activity.reward}</p>}
-                      {activity.cost && <p className="text-red-400 font-semibold">{activity.cost}</p>}
-                      {activity.status && (
-                        <Badge className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white">
-                          {activity.status}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+                    <CardContent className="p-6 text-center">
+                      <div className="relative mb-4">
+                        <div className={`w-16 h-16 bg-gradient-to-${stat.color}`} />
+                        <IconComponent className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold mb-2">{stat.title}</h3>
+                      <p className="text-white font-semibold">{stat.value}</p>
+                    </CardContent>
+                  </Card>
                 )
               })}
-            </CardContent>
-          </Card>
-
-          {/* Achievements */}
-          <Card className="backdrop-blur-xl bg-gradient-to-br from-gray-900/50 to-black/50 border border-gray-700/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-white">
-                <Award className="w-6 h-6 text-purple-400" />
-                Achievements
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {achievements.map((achievement, index) => {
-                const IconComponent = achievement.icon
-                return (
-                  <div
-                    key={index}
-                    className={`flex items-center space-x-4 p-4 rounded-lg transition-all duration-300 ${
-                      achievement.unlocked
-                        ? "bg-green-900/30 border border-green-500/30"
-                        : "bg-gray-800/50 border border-gray-700/50"
-                    }`}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center shadow-lg ${
-                        achievement.unlocked ? "bg-gradient-to-br from-green-500 to-emerald-600" : "bg-gray-700"
-                      }`}
-                    >
-                      <IconComponent className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className={`font-medium ${achievement.unlocked ? "text-white" : "text-gray-400"}`}>
-                        {achievement.name}
-                      </p>
-                      <p className="text-gray-400 text-sm">{achievement.description}</p>
-                    </div>
-                    {achievement.unlocked && (
-                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        Unlocked
-                      </Badge>
-                    )}
-                  </div>
-                )
-              })}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Discord CTA */}
-        <Card className="backdrop-blur-xl bg-gradient-to-br from-purple-900/50 to-pink-900/50 border border-purple-500/30 mt-8 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-pink-500/10 animate-pulse"></div>
-
-          <CardContent className="p-8 text-center relative z-10">
-            <div className="relative mb-6">
-              <Users className="h-16 w-16 text-purple-400 mx-auto" />
-              <div className="absolute inset-0 bg-purple-400 blur-xl opacity-30"></div>
             </div>
-            <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent mb-4">
-              Join Our Community
-            </h3>
-            <p className="text-gray-300 mb-6 text-lg">
-              Connect with other players, get support, and stay updated with the latest news on our Discord server!
-            </p>
+          </>
+        ) : (
+          <div className="text-center">
             <Button
-              onClick={handleJoinDiscord}
-              className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white px-8 py-4 text-lg font-semibold shadow-lg shadow-purple-500/50 hover:shadow-purple-500/80 transition-all duration-300 hover:scale-105 overflow-hidden group"
+              onClick={handleCreateCharacter}
+              className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:bg-gradient-to-r hover:from-blue-500 hover:to-cyan-600"
             >
-              <span className="relative z-10 flex items-center gap-3">
-                <Users className="w-5 h-5" />
-                Join Discord
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+              <Plus className="w-5 h-5 mr-2" />
+              Create Character
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
-
-      {/* Floating Elements */}
-      <div className="absolute top-20 left-10 w-4 h-4 bg-cyan-500 rounded-full animate-bounce opacity-60"></div>
-      <div className="absolute top-40 right-20 w-3 h-3 bg-blue-500 rounded-full animate-pulse opacity-60"></div>
-      <div className="absolute bottom-20 left-20 w-5 h-5 bg-purple-500 rounded-full animate-ping opacity-40"></div>
-      <div className="absolute bottom-40 right-10 w-2 h-2 bg-cyan-500 rounded-full animate-bounce opacity-60"></div>
     </div>
   )
 }
