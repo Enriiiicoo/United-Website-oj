@@ -12,8 +12,8 @@ const REQUIRED_VARS = [
   "NEXTAUTH_SECRET",
   "DISCORD_CLIENT_ID",
   "DISCORD_CLIENT_SECRET",
-  // NEXTAUTH_URL is required by NextAuth but may be injected automatically on Vercel;
-  // include it if you want to enforce it locally.
+  "DISCORD_BOT_TOKEN",
+  "DISCORD_GUILD_ID",
   "NEXTAUTH_URL",
 ] as const
 

@@ -12,16 +12,19 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Navigation } from "@/components/navigation"
 import { AnimatedSection } from "@/components/animated-section"
-import { Link2, User, Lock, CheckCircle, AlertCircle } from "lucide-react"
+import { Link2, User, Lock, CheckCircle, AlertCircle, Search } from "lucide-react"
 
 export default function LinkAccountPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [discordUsername, setDiscordUsername] = useState("")
   const [gameUsername, setGameUsername] = useState("")
   const [gamePassword, setGamePassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
   const [message, setMessage] = useState("")
   const [messageType, setMessageType] = useState<"success" | "error" | "">("")
+  const [foundDiscordUser, setFoundDiscordUser] = useState<any>(null)
 
   if (status === "loading") {
     return (
@@ -36,8 +39,55 @@ export default function LinkAccountPage() {
     return null
   }
 
+  const searchDiscordUser = async () => {
+    if (!discordUsername.trim()) {
+      setMessage("Please enter your Discord username")
+      setMessageType("error")
+      return
+    }
+
+    setIsSearching(true)
+    setMessage("")
+    setFoundDiscordUser(null)
+
+    try {
+      const response = await fetch("/api/search-discord-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: discordUsername.trim(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.user) {
+        setFoundDiscordUser(data.user)
+        setMessage(`Found Discord user: ${data.user.username}`)
+        setMessageType("success")
+      } else {
+        setMessage(data.error || "Discord user not found in server")
+        setMessageType("error")
+      }
+    } catch (error) {
+      setMessage("Error searching for Discord user")
+      setMessageType("error")
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
   const handleLinkAccount = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!foundDiscordUser) {
+      setMessage("Please search and confirm your Discord user first")
+      setMessageType("error")
+      return
+    }
+
     setIsLoading(true)
     setMessage("")
 
@@ -48,7 +98,8 @@ export default function LinkAccountPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          discordId: session.user.discordId, // Automatically use Discord ID from session
+          discordId: foundDiscordUser.id,
+          discordUsername: foundDiscordUser.username,
           gameUsername,
           gamePassword,
         }),
@@ -99,19 +150,57 @@ export default function LinkAccountPage() {
                 <p className="text-orange-200">Connect your Discord account to your game account</p>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Discord Info Display */}
-                <div className="bg-black/30 rounded-lg p-4 border border-orange-500/20">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={session.user?.image || "/placeholder-user.jpg"}
-                      alt="Discord avatar"
-                      className="w-10 h-10 rounded-full"
-                    />
-                    <div>
-                      <p className="text-white font-medium">{session.user?.name}</p>
-                      <p className="text-orange-300 text-sm">Discord ID: {session.user.discordId}</p>
+                {/* Discord User Search */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="discordUsername" className="text-orange-200">
+                      Discord Username
+                    </Label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-orange-400" />
+                        <Input
+                          id="discordUsername"
+                          type="text"
+                          value={discordUsername}
+                          onChange={(e) => setDiscordUsername(e.target.value)}
+                          className="pl-10 bg-black/30 border-orange-500/30 text-white placeholder-orange-300/50 focus:border-orange-400"
+                          placeholder="Enter your Discord username"
+                          onKeyPress={(e) => e.key === "Enter" && searchDiscordUser()}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={searchDiscordUser}
+                        disabled={isSearching}
+                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                      >
+                        {isSearching ? <Search className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      </Button>
                     </div>
                   </div>
+
+                  {/* Found Discord User Display */}
+                  {foundDiscordUser && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={
+                            foundDiscordUser.avatar
+                              ? `https://cdn.discordapp.com/avatars/${foundDiscordUser.id}/${foundDiscordUser.avatar}.png`
+                              : "/placeholder-user.jpg"
+                          }
+                          alt="Discord avatar"
+                          className="w-10 h-10 rounded-full"
+                        />
+                        <div>
+                          <p className="text-white font-medium">{foundDiscordUser.username}</p>
+                          <p className="text-green-300 text-sm">Discord ID: {foundDiscordUser.id}</p>
+                        </div>
+                        <CheckCircle className="h-5 w-5 text-green-400 ml-auto" />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <form onSubmit={handleLinkAccount} className="space-y-4">
@@ -168,17 +257,15 @@ export default function LinkAccountPage() {
 
                   <Button
                     type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                    disabled={isLoading || !foundDiscordUser}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50"
                   >
                     {isLoading ? "Linking Account..." : "Link Account"}
                   </Button>
                 </form>
 
                 <div className="text-center">
-                  <p className="text-orange-300 text-sm">
-                    This will connect your Discord account to your existing game account
-                  </p>
+                  <p className="text-orange-300 text-sm">Make sure you're a member of our Discord server first</p>
                 </div>
               </CardContent>
             </Card>
