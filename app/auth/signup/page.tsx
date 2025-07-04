@@ -15,7 +15,8 @@ export default function SignUpPage() {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
-    gameId: "",
+    gameUsername: "",
+    gamePassword: "",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -55,8 +56,13 @@ export default function SignUpPage() {
       return
     }
 
-    if (!formData.username.trim() || !formData.email.trim()) {
-      setError("Username and email are required!")
+    if (
+      !formData.username.trim() ||
+      !formData.email.trim() ||
+      !formData.gameUsername.trim() ||
+      !formData.gamePassword.trim()
+    ) {
+      setError("All fields are required!")
       return
     }
 
@@ -192,16 +198,32 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="gameId">Game Character ID (Optional)</Label>
-              <Input
-                id="gameId"
-                type="text"
-                placeholder="Your in-game character ID"
-                value={formData.gameId}
-                onChange={(e) => setFormData({ ...formData, gameId: e.target.value })}
-                disabled={isLoading}
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="gameUsername">Game Username *</Label>
+                <Input
+                  id="gameUsername"
+                  type="text"
+                  placeholder="Your in-game username"
+                  value={formData.gameUsername}
+                  onChange={(e) => setFormData({ ...formData, gameUsername: e.target.value })}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gamePassword">Game Password *</Label>
+                <Input
+                  id="gamePassword"
+                  type="password"
+                  placeholder="Your in-game password"
+                  value={formData.gamePassword}
+                  onChange={(e) => setFormData({ ...formData, gamePassword: e.target.value })}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
             </div>
 
             <Button

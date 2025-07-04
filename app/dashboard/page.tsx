@@ -1,14 +1,9 @@
 "use client"
 
-import type React from "react"
-
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { signOut } from "next-auth/react"
 import { LogOut, User, Mail, MessageSquare, Gamepad2, CheckCircle, Loader2 } from "lucide-react"
 
@@ -18,20 +13,22 @@ interface UserProfile {
   email: string
   discordId: string
   discordUsername: string
-  gameCharacterId?: string
   avatarUrl?: string
   isVerified: boolean
   isActive: boolean
   createdAt: string
+  gameAccount?: {
+    id: number
+    username: string
+    email: string
+    registerDate: string
+  }
 }
 
 export default function DashboardPage() {
   const { data: session } = useSession()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
-  const [gameId, setGameId] = useState("")
-  const [linkingGame, setLinkingGame] = useState(false)
-  const [message, setMessage] = useState("")
 
   useEffect(() => {
     if (session?.user?.discordId) {
@@ -45,41 +42,11 @@ export default function DashboardPage() {
       if (response.ok) {
         const data = await response.json()
         setProfile(data.user)
-        setGameId(data.user.gameCharacterId || "")
       }
     } catch (error) {
       console.error("Failed to fetch profile:", error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleLinkGame = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!gameId.trim()) return
-
-    setLinkingGame(true)
-    setMessage("")
-
-    try {
-      const response = await fetch("/api/user/link-game", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gameCharacterId: gameId }),
-      })
-
-      const result = await response.json()
-
-      if (response.ok) {
-        setMessage("Game account linked successfully!")
-        fetchProfile() // Refresh profile
-      } else {
-        setMessage(result.message || "Failed to link game account")
-      }
-    } catch (error) {
-      setMessage("Failed to link game account")
-    } finally {
-      setLinkingGame(false)
     }
   }
 
@@ -163,10 +130,14 @@ export default function DashboardPage() {
                 <Gamepad2 className="w-5 h-5 text-gray-600" />
                 <div className="flex-1">
                   <p className="font-medium">Game Account</p>
-                  {profile?.gameCharacterId ? (
+                  {profile?.gameAccount ? (
                     <div>
-                      <p className="text-sm text-gray-600">Character ID: {profile.gameCharacterId}</p>
-                      <p className="text-xs text-green-600">✓ Linked</p>
+                      <p className="text-sm text-gray-600">Username: {profile.gameAccount.username}</p>
+                      <p className="text-sm text-gray-600">Email: {profile.gameAccount.email}</p>
+                      <p className="text-sm text-gray-600">
+                        Registered: {new Date(profile.gameAccount.registerDate).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-green-600">✓ Linked & Verified</p>
                     </div>
                   ) : (
                     <p className="text-sm text-gray-500">Not linked</p>
@@ -174,45 +145,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Game Account Linking */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Link Game Account</CardTitle>
-            <CardDescription>Connect your in-game character for full access</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {message && (
-              <Alert className="mb-4">
-                <AlertDescription>{message}</AlertDescription>
-              </Alert>
-            )}
-
-            <form onSubmit={handleLinkGame} className="space-y-4">
-              <div>
-                <Label htmlFor="gameId">Game Character ID</Label>
-                <Input
-                  id="gameId"
-                  type="text"
-                  placeholder="Enter your character ID"
-                  value={gameId}
-                  onChange={(e) => setGameId(e.target.value)}
-                  disabled={linkingGame}
-                />
-              </div>
-              <Button type="submit" disabled={linkingGame || !gameId.trim()}>
-                {linkingGame ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Linking...
-                  </>
-                ) : (
-                  "Link Game Account"
-                )}
-              </Button>
-            </form>
           </CardContent>
         </Card>
 

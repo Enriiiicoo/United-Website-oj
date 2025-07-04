@@ -13,10 +13,12 @@ export async function GET(request: NextRequest) {
 
     // Get user profile from database
     const user = await queryRow(
-      `SELECT id, username, email, discord_id, discord_username, game_character_id, 
-              avatar_url, is_verified, is_active, created_at 
-       FROM website_users 
-       WHERE discord_id = ?`,
+      `SELECT wu.id, wu.username, wu.email, wu.discord_id, wu.discord_username, wu.account_id,
+          wu.avatar_url, wu.is_verified, wu.is_active, wu.created_at,
+          a.username as game_username, a.email as game_email, a.registerdate as game_register_date
+   FROM website_users wu
+   LEFT JOIN accounts a ON wu.account_id = a.id
+   WHERE wu.discord_id = ?`,
       [session.user.discordId],
     )
 
@@ -31,11 +33,18 @@ export async function GET(request: NextRequest) {
         email: user.email,
         discordId: user.discord_id,
         discordUsername: user.discord_username,
-        gameCharacterId: user.game_character_id,
         avatarUrl: user.avatar_url,
         isVerified: user.is_verified,
         isActive: user.is_active,
         createdAt: user.created_at,
+        gameAccount: user.account_id
+          ? {
+              id: user.account_id,
+              username: user.game_username,
+              email: user.game_email,
+              registerDate: user.game_register_date,
+            }
+          : null,
       },
     })
   } catch (error) {
