@@ -5,11 +5,16 @@ import { queryRow } from "@/lib/mysql"
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("🔍 Profile API - Getting session...")
     const session = await getServerSession(authOptions)
+    console.log("📝 Profile API - Session:", JSON.stringify(session, null, 2))
 
     if (!session?.user?.discordId) {
+      console.log("❌ Profile API - No Discord ID in session")
       return NextResponse.json({ message: "Not authenticated" }, { status: 401 })
     }
+
+    console.log("🔍 Profile API - Querying database for Discord ID:", session.user.discordId)
 
     // Get user profile from database
     const user = await queryRow(
@@ -22,10 +27,14 @@ export async function GET(request: NextRequest) {
       [session.user.discordId],
     )
 
+    console.log("📝 Profile API - Database result:", JSON.stringify(user, null, 2))
+
     if (!user) {
+      console.log("❌ Profile API - User not found in database")
       return NextResponse.json({ message: "User not found" }, { status: 404 })
     }
 
+    console.log("✅ Profile API - User found, returning profile")
     return NextResponse.json({
       user: {
         id: user.id,
@@ -48,7 +57,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error("Profile fetch error:", error)
+    console.error("❌ Profile API - Error:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })
   }
 }

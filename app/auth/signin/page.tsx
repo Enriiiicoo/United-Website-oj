@@ -10,13 +10,18 @@ export default function SignInPage() {
   const { data: session, status } = useSession()
 
   useEffect(() => {
-    // If user is already signed in, redirect to dashboard
+    console.log("🔍 SignIn Page - Session status:", status)
+    console.log("📝 SignIn Page - Session data:", JSON.stringify(session, null, 2))
+
+    // If user is already signed in, redirect to callback for proper routing
     if (session?.user?.discordId) {
-      window.location.href = "/dashboard"
+      console.log("✅ SignIn Page - User already signed in, redirecting to callback")
+      window.location.href = "/auth/callback"
     }
   }, [session])
 
   const handleDiscordSignIn = () => {
+    console.log("🔍 SignIn Page - Starting Discord sign-in...")
     signIn("discord", {
       callbackUrl: "/auth/callback",
     })
