@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { executeQuery } from "@/lib/db"
 import crypto from "crypto"
+import { validateEnvironmentVariables } from "@/lib/env"
 
 function hashPassword(password: string, salt: string): string {
   return crypto
@@ -12,6 +13,9 @@ function hashPassword(password: string, salt: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // ensure required env-vars exist – only at runtime, not during build
+  validateEnvironmentVariables()
+
   try {
     const session = await getServerSession(authOptions)
 
