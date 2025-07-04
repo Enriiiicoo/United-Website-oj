@@ -81,7 +81,10 @@ export default function SignUpPage() {
 
       if (response.ok) {
         setSuccess("Account created successfully! Redirecting...")
-        setTimeout(() => {
+        // Force a session refresh before redirecting
+        setTimeout(async () => {
+          // Trigger a session update
+          await fetch("/api/auth/session")
           window.location.href = "/auth/success"
         }, 2000)
       } else {

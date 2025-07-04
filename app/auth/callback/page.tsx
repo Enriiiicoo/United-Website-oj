@@ -35,7 +35,21 @@ export default function AuthCallbackPage() {
   const checkUserExists = async () => {
     try {
       console.log("🔍 Callback Page - Checking if user exists...")
-      setMessage("Checking your account status...")
+      setMessage("Verifying your account...")
+
+      // First, let's refresh the session to make sure it's current
+      const sessionRefresh = await fetch("/api/auth/session-refresh")
+      const sessionData = await sessionRefresh.json()
+      console.log("📝 Callback Page - Session refresh result:", sessionData)
+
+      if (!sessionData.authenticated) {
+        console.log("❌ Callback Page - Not authenticated after refresh")
+        setMessage("Authentication incomplete. Please try signing in again.")
+        setTimeout(() => {
+          window.location.href = "/auth/signin"
+        }, 3000)
+        return
+      }
 
       const response = await fetch("/api/user/profile")
       console.log("📝 Callback Page - Profile API response status:", response.status)
@@ -45,7 +59,7 @@ export default function AuthCallbackPage() {
         console.log("✅ Callback Page - User exists:", data)
         setMessage("Account verified! Redirecting to dashboard...")
         setTimeout(() => {
-          window.location.href = "/dashboard"
+          window.location.href = "/auth/loading"
         }, 1500)
       } else if (response.status === 404) {
         console.log("❌ Callback Page - User not found, redirecting to signup")
@@ -56,16 +70,16 @@ export default function AuthCallbackPage() {
       } else {
         const errorData = await response.json()
         console.error("❌ Callback Page - API error:", errorData)
-        setMessage("Account verification failed. Redirecting to home...")
+        setMessage("Account verification failed. Please try again.")
         setTimeout(() => {
-          window.location.href = "/"
+          window.location.href = "/auth/signin"
         }, 3000)
       }
     } catch (error) {
       console.error("❌ Callback Page - Error:", error)
-      setMessage("Something went wrong. Redirecting to home...")
+      setMessage("Something went wrong. Please try signing in again.")
       setTimeout(() => {
-        window.location.href = "/"
+        window.location.href = "/auth/signin"
       }, 3000)
     } finally {
       setChecking(false)

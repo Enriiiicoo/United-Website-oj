@@ -37,15 +37,25 @@ export default function DashboardPage() {
   }, [session, status])
 
   useEffect(() => {
-    if (session?.user?.discordId) {
-      fetchProfile()
-    } else if (status !== "loading") {
-      console.log("❌ Dashboard - No session, redirecting to signin")
-      // Only redirect if we're sure there's no session
-      setTimeout(() => {
-        window.location.href = "/auth/signin"
-      }, 1000)
+    console.log("🔍 Dashboard - Session status:", status)
+    console.log("📝 Dashboard - Session data:", JSON.stringify(session, null, 2))
+
+    if (status === "loading") {
+      console.log("⏳ Dashboard - Session still loading...")
+      return
     }
+
+    if (!session?.user?.discordId) {
+      console.log("❌ Dashboard - No Discord ID found, redirecting to signin")
+      console.log("❌ Dashboard - Session:", session)
+      console.log("❌ Dashboard - User:", session?.user)
+      // Redirect to signin instead of home page
+      window.location.href = "/auth/signin"
+      return
+    }
+
+    console.log("✅ Dashboard - Valid session found, fetching profile")
+    fetchProfile()
   }, [session, status])
 
   const fetchProfile = async () => {

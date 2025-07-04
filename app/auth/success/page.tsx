@@ -14,7 +14,8 @@ export default function SuccessPage() {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          window.location.href = "/dashboard"
+          // Redirect to loading page instead of directly to dashboard
+          window.location.href = "/auth/loading"
           return 0
         }
         return prev - 1
@@ -25,7 +26,7 @@ export default function SuccessPage() {
   }, [])
 
   const goToDashboard = () => {
-    window.location.href = "/dashboard"
+    window.location.href = "/auth/loading"
   }
 
   return (
