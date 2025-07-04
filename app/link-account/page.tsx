@@ -1,18 +1,22 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Crown, Search, Link, User } from "lucide-react"
+import { toast } from "sonner"
 import { Navigation } from "@/components/navigation"
-import { AnimatedSection } from "@/components/animated-section"
-import { Link2, User, Lock, CheckCircle, AlertCircle, Search } from "lucide-react"
+
+interface DiscordUser {
+  discordId: string
+  username: string
+  displayName: string
+  avatar: string | null
+}
 
 export default function LinkAccountPage() {
   const { data: session, status } = useSession()
@@ -20,11 +24,9 @@ export default function LinkAccountPage() {
   const [discordUsername, setDiscordUsername] = useState("")
   const [gameUsername, setGameUsername] = useState("")
   const [gamePassword, setGamePassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [foundUser, setFoundUser] = useState<DiscordUser | null>(null)
   const [isSearching, setIsSearching] = useState(false)
-  const [message, setMessage] = useState("")
-  const [messageType, setMessageType] = useState<"success" | "error" | "">("")
-  const [foundDiscordUser, setFoundDiscordUser] = useState<any>(null)
+  const [isLinking, setIsLinking] = useState(false)
 
   if (status === "loading") {
     return (
@@ -41,236 +43,186 @@ export default function LinkAccountPage() {
 
   const searchDiscordUser = async () => {
     if (!discordUsername.trim()) {
-      setMessage("Please enter your Discord username")
-      setMessageType("error")
+      toast.error("Please enter a Discord username")
       return
     }
 
     setIsSearching(true)
-    setMessage("")
-    setFoundDiscordUser(null)
-
     try {
       const response = await fetch("/api/search-discord-user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: discordUsername.trim(),
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: discordUsername.trim() }),
       })
 
       const data = await response.json()
 
-      if (response.ok && data.user) {
-        setFoundDiscordUser(data.user)
-        setMessage(`Found Discord user: ${data.user.username}`)
-        setMessageType("success")
+      if (response.ok) {
+        setFoundUser(data)
+        toast.success("Discord user found!")
       } else {
-        setMessage(data.error || "Discord user not found in server")
-        setMessageType("error")
+        toast.error(data.error || "User not found")
+        setFoundUser(null)
       }
     } catch (error) {
-      setMessage("Error searching for Discord user")
-      setMessageType("error")
+      toast.error("Failed to search for user")
+      setFoundUser(null)
     } finally {
       setIsSearching(false)
     }
   }
 
-  const handleLinkAccount = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!foundDiscordUser) {
-      setMessage("Please search and confirm your Discord user first")
-      setMessageType("error")
+  const linkAccount = async () => {
+    if (!foundUser || !gameUsername.trim() || !gamePassword.trim()) {
+      toast.error("Please fill in all fields")
       return
     }
 
-    setIsLoading(true)
-    setMessage("")
-
+    setIsLinking(true)
     try {
       const response = await fetch("/api/link-account", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          discordId: foundDiscordUser.id,
-          discordUsername: foundDiscordUser.username,
-          gameUsername,
-          gamePassword,
+          discordId: foundUser.discordId,
+          gameUsername: gameUsername.trim(),
+          gamePassword: gamePassword.trim(),
         }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        setMessage("Account linked successfully!")
-        setMessageType("success")
-        setTimeout(() => {
-          router.push("/dashboard")
-        }, 2000)
+        toast.success("Account linked successfully!")
+        router.push("/dashboard")
       } else {
-        setMessage(data.error || "Failed to link account")
-        setMessageType("error")
+        toast.error(data.error || "Failed to link account")
       }
     } catch (error) {
-      setMessage("An error occurred while linking your account")
-      setMessageType("error")
+      toast.error("Failed to link account")
     } finally {
-      setIsLoading(false)
+      setIsLinking(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-900 via-orange-800 to-orange-600 relative overflow-hidden">
-      {/* Background elements */}
       <div className="absolute inset-0">
         <div className="absolute top-20 left-20 w-32 h-32 bg-orange-400/20 rounded-full blur-xl animate-pulse"></div>
         <div className="absolute bottom-20 right-20 w-48 h-48 bg-orange-300/20 rounded-full blur-xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-orange-500/10 rounded-full blur-2xl animate-pulse delay-500"></div>
       </div>
 
       <Navigation />
 
       <div className="container mx-auto px-4 py-16 relative z-10">
-        <AnimatedSection animation="slideUp">
-          <div className="max-w-md mx-auto">
-            <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30">
-              <CardHeader className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="p-3 bg-orange-500/20 rounded-full">
-                    <Link2 className="h-8 w-8 text-orange-400" />
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600/30 to-orange-400/30 backdrop-blur-xl border border-orange-500/30 rounded-full px-6 py-3 mb-6">
+              <Crown className="h-6 w-6 text-orange-300" />
+              <span className="text-orange-200 font-semibold">LINK ACCOUNT</span>
+            </div>
+            <h1 className="text-4xl font-bold text-white mb-4">Link Your Accounts</h1>
+            <p className="text-orange-200">Connect your Discord and game accounts</p>
+          </div>
+
+          <Card className="bg-gradient-to-br from-black/40 via-orange-950/40 to-black/40 backdrop-blur-xl border border-orange-500/30">
+            <CardHeader>
+              <CardTitle className="text-xl text-white flex items-center gap-3">
+                <Link className="h-6 w-6 text-orange-400" />
+                Account Linking
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Discord User Search */}
+              <div className="space-y-4">
+                <Label className="text-orange-200 text-lg font-semibold">Step 1: Find Your Discord Account</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={discordUsername}
+                    onChange={(e) => setDiscordUsername(e.target.value)}
+                    placeholder="Enter your Discord username"
+                    className="bg-black/30 border-orange-500/30 text-white placeholder:text-orange-300/50"
+                  />
+                  <Button
+                    onClick={searchDiscordUser}
+                    disabled={isSearching}
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    {isSearching ? "Searching..." : "Search"}
+                  </Button>
+                </div>
+                <p className="text-sm text-orange-300">
+                  Enter your Discord username as it appears in the United Server Discord
+                </p>
+              </div>
+
+              {/* Found User Display */}
+              {foundUser && (
+                <div className="bg-black/30 rounded-lg p-4 border border-orange-500/30">
+                  <div className="flex items-center gap-3">
+                    {foundUser.avatar ? (
+                      <img
+                        src={foundUser.avatar || "/placeholder.svg"}
+                        alt="Discord avatar"
+                        className="w-12 h-12 rounded-full"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-orange-500/30 rounded-full flex items-center justify-center">
+                        <User className="h-6 w-6 text-orange-300" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-white font-semibold">{foundUser.displayName}</p>
+                      <p className="text-orange-300 text-sm">@{foundUser.username}</p>
+                      <p className="text-orange-400 text-xs">ID: {foundUser.discordId}</p>
+                    </div>
                   </div>
                 </div>
-                <CardTitle className="text-2xl text-white">Link Game Account</CardTitle>
-                <p className="text-orange-200">Connect your Discord account to your game account</p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Discord User Search */}
+              )}
+
+              {/* Game Account Info */}
+              {foundUser && (
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="discordUsername" className="text-orange-200">
-                      Discord Username
-                    </Label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-orange-400" />
-                        <Input
-                          id="discordUsername"
-                          type="text"
-                          value={discordUsername}
-                          onChange={(e) => setDiscordUsername(e.target.value)}
-                          className="pl-10 bg-black/30 border-orange-500/30 text-white placeholder-orange-300/50 focus:border-orange-400"
-                          placeholder="Enter your Discord username"
-                          onKeyPress={(e) => e.key === "Enter" && searchDiscordUser()}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={searchDiscordUser}
-                        disabled={isSearching}
-                        className="bg-orange-600 hover:bg-orange-700 text-white"
-                      >
-                        {isSearching ? <Search className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Found Discord User Display */}
-                  {foundDiscordUser && (
-                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={
-                            foundDiscordUser.avatar
-                              ? `https://cdn.discordapp.com/avatars/${foundDiscordUser.id}/${foundDiscordUser.avatar}.png`
-                              : "/placeholder-user.jpg"
-                          }
-                          alt="Discord avatar"
-                          className="w-10 h-10 rounded-full"
-                        />
-                        <div>
-                          <p className="text-white font-medium">{foundDiscordUser.username}</p>
-                          <p className="text-green-300 text-sm">Discord ID: {foundDiscordUser.id}</p>
-                        </div>
-                        <CheckCircle className="h-5 w-5 text-green-400 ml-auto" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <form onSubmit={handleLinkAccount} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="gameUsername" className="text-orange-200">
-                      Game Username
-                    </Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-orange-400" />
+                  <Label className="text-orange-200 text-lg font-semibold">Step 2: Enter Game Account Details</Label>
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-orange-200">Game Username</Label>
                       <Input
-                        id="gameUsername"
-                        type="text"
                         value={gameUsername}
                         onChange={(e) => setGameUsername(e.target.value)}
-                        className="pl-10 bg-black/30 border-orange-500/30 text-white placeholder-orange-300/50 focus:border-orange-400"
-                        placeholder="Enter your game username"
-                        required
+                        placeholder="Your in-game username"
+                        className="bg-black/30 border-orange-500/30 text-white placeholder:text-orange-300/50"
                       />
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="gamePassword" className="text-orange-200">
-                      Game Password
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-orange-400" />
+                    <div>
+                      <Label className="text-orange-200">Game Password</Label>
                       <Input
-                        id="gamePassword"
                         type="password"
                         value={gamePassword}
                         onChange={(e) => setGamePassword(e.target.value)}
-                        className="pl-10 bg-black/30 border-orange-500/30 text-white placeholder-orange-300/50 focus:border-orange-400"
-                        placeholder="Enter your game password"
-                        required
+                        placeholder="Your in-game password"
+                        className="bg-black/30 border-orange-500/30 text-white placeholder:text-orange-300/50"
                       />
                     </div>
                   </div>
-
-                  {message && (
-                    <Alert
-                      className={`border ${messageType === "success" ? "border-green-500/30 bg-green-500/10" : "border-red-500/30 bg-red-500/10"}`}
-                    >
-                      {messageType === "success" ? (
-                        <CheckCircle className="h-4 w-4 text-green-400" />
-                      ) : (
-                        <AlertCircle className="h-4 w-4 text-red-400" />
-                      )}
-                      <AlertDescription className={messageType === "success" ? "text-green-300" : "text-red-300"}>
-                        {message}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <Button
-                    type="submit"
-                    disabled={isLoading || !foundDiscordUser}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50"
-                  >
-                    {isLoading ? "Linking Account..." : "Link Account"}
-                  </Button>
-                </form>
-
-                <div className="text-center">
-                  <p className="text-orange-300 text-sm">Make sure you're a member of our Discord server first</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </AnimatedSection>
+              )}
+
+              {/* Link Button */}
+              {foundUser && (
+                <Button
+                  onClick={linkAccount}
+                  disabled={isLinking || !gameUsername.trim() || !gamePassword.trim()}
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3"
+                >
+                  <Link className="h-4 w-4 mr-2" />
+                  {isLinking ? "Linking Account..." : "Link Account"}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
