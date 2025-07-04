@@ -7,8 +7,8 @@ import AuthSessionProvider from "@/components/providers/session-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "United Roleplay",
-  description: "Join the United Roleplay community",
+  title: "United Roleplay - Gaming Community",
+  description: "Join the United Roleplay community with Discord integration and game account linking.",
     generator: 'v0.dev'
 }
 
