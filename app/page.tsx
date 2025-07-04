@@ -55,13 +55,13 @@ export default function HomePage() {
   }, [])
 
   const handleJoinServer = () => {
-    const serverIP = "mtasa://89.42.88.252:22066"
+    const serverIP = "mtasa://89.42.88.252:22097"
     window.open(serverIP, "_blank")
     toast.success("Opening MTA:SA client...")
   }
 
   const handleDiscord = () => {
-    window.open("https://discord.gg/unitedserver", "_blank")
+    window.open("https://discord.gg/eQeHev6p94", "_blank")
   }
 
   const handleTrailer = () => {
@@ -77,7 +77,7 @@ export default function HomePage() {
   }
 
   const handleCopyIP = async () => {
-    const serverIP = "mtasa://89.42.88.252:22066"
+    const serverIP = "mtasa://89.42.88.252:22097"
     try {
       await navigator.clipboard.writeText(serverIP)
       toast.success("Server IP copied to clipboard!")
@@ -191,7 +191,7 @@ export default function HomePage() {
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Server IP</p>
                     <code className="text-orange-400 font-mono text-lg group-hover:text-orange-300 transition-colors">
-                      mtasa://89.42.88.252:22066
+                      mtasa://89.42.88.252:22097
                     </code>
                   </div>
                   <button

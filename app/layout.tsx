@@ -3,14 +3,16 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Navigation } from "@/components/navigation"
 import { SessionProvider } from "@/components/session-provider"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "United Gaming Community",
-  description: "Official website for United Gaming Community",
+  title: "United Server - Morocco's Premier MTA Roleplay",
+  description:
+    "Join Morocco's most authentic MTA roleplay server. Experience immersive gameplay, active community, and professional staff since 2021.",
     generator: 'v0.dev'
 }
 
@@ -24,7 +26,8 @@ export default function RootLayout({
       <body className={inter.className}>
         <SessionProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-            {children}
+            <Navigation />
+            <main>{children}</main>
             <Toaster />
           </ThemeProvider>
         </SessionProvider>
