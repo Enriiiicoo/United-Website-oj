@@ -1,32 +1,37 @@
-/**
- * Minimum “schema” stub so that any `import { accounts } from "@/lib/db/schema"` works
- * even if you’re not using an ORM yet.
- *
- * If you later adopt Drizzle ORM, Prisma, etc., replace this with the real
- * model definition—those files will still re-export `accounts`.
- */
+import { pgTable, serial, varchar, text, timestamp, integer } from "drizzle-orm/pg-core"
 
-/* eslint-disable @typescript-eslint/consistent-type-definitions */
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  email: varchar("email", { length: 100 }).notNull().unique(),
+  password: varchar("password", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+})
 
-export type Account = {
-  id: number
-  username: string | null
-  password: string
-  salt: string
-  email: string
-  registerdate: string // ISO date string
-  lastlogin: string | null // ISO date string
-  ip: string | null
-  activated: number // tinyint(1)
-  // ...add other columns as needed
-}
+export const discordLinks = pgTable("discord_links", {
+  id: serial("id").primaryKey(),
+  discordId: varchar("discord_id", { length: 20 }).notNull().unique(),
+  discordUsername: varchar("discord_username", { length: 50 }).notNull(),
+  gameUsername: varchar("game_username", { length: 50 }).notNull(),
+  gamePassword: varchar("game_password", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+})
 
-/**
- * A tiny helper to make raw SQL easier to write/read:
- *
- *   await db.query(sql`SELECT * FROM ${accounts} WHERE id = ?`, [id])
- *
- * It’s just the literal table name (“accounts”) wrapped in an object so
- * you can consistently import & reference it.
- */
-export const accounts = "accounts" as const
+export const playerStats = pgTable("player_stats", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 50 }).notNull(),
+  level: integer("level").default(1),
+  experience: integer("experience").default(0),
+  kills: integer("kills").default(0),
+  deaths: integer("deaths").default(0),
+  playtime: integer("playtime").default(0),
+  lastSeen: timestamp("last_seen").defaultNow(),
+})
+
+export const whitelist = pgTable("whitelist", {
+  id: serial("id").primaryKey(),
+  username: varchar("username", { length: 50 }).notNull().unique(),
+  addedBy: varchar("added_by", { length: 50 }).notNull(),
+  reason: text("reason"),
+  addedAt: timestamp("added_at").defaultNow(),
+})

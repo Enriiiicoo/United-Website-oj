@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Crown, Search, Link, User } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Crown, Search, Link, User, ExternalLink, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Navigation } from "@/components/navigation"
 
@@ -27,6 +28,8 @@ export default function LinkAccountPage() {
   const [foundUser, setFoundUser] = useState<DiscordUser | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [isLinking, setIsLinking] = useState(false)
+  const [showJoinMessage, setShowJoinMessage] = useState(false)
+  const [discordInvite, setDiscordInvite] = useState("")
 
   if (status === "loading") {
     return (
@@ -48,6 +51,7 @@ export default function LinkAccountPage() {
     }
 
     setIsSearching(true)
+    setShowJoinMessage(false)
     try {
       const response = await fetch("/api/search-discord-user", {
         method: "POST",
@@ -61,6 +65,10 @@ export default function LinkAccountPage() {
         setFoundUser(data)
         toast.success("Discord user found!")
       } else {
+        if (response.status === 404) {
+          setShowJoinMessage(true)
+          setDiscordInvite(data.discordInvite || "https://discord.gg/your-server")
+        }
         toast.error(data.error || "User not found")
         setFoundUser(null)
       }
@@ -156,6 +164,28 @@ export default function LinkAccountPage() {
                   Enter your Discord username as it appears in the United Server Discord
                 </p>
               </div>
+
+              {/* Join Discord Message */}
+              {showJoinMessage && (
+                <Alert className="border-orange-500/30 bg-orange-500/10">
+                  <AlertCircle className="h-4 w-4 text-orange-400" />
+                  <AlertDescription className="text-orange-200">
+                    <div className="space-y-3">
+                      <p>You need to join our Discord server first before linking your account.</p>
+                      <Button
+                        onClick={() => window.open(discordInvite, "_blank")}
+                        className="bg-[#5865F2] hover:bg-[#4752C4] text-white"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Join Discord Server
+                      </Button>
+                      <p className="text-sm text-orange-300">
+                        After joining the server, come back and search for your Discord username again.
+                      </p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {/* Found User Display */}
               {foundUser && (

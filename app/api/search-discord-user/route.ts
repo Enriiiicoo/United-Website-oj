@@ -38,7 +38,14 @@ export async function POST(request: NextRequest) {
     )
 
     if (!foundUser) {
-      return NextResponse.json({ error: "User not found in Discord server" }, { status: 404 })
+      return NextResponse.json(
+        {
+          error: "User not found in Discord server",
+          message: "Please join our Discord server first before linking your account",
+          discordInvite: process.env.DISCORD_INVITE_URL || "https://discord.gg/your-server",
+        },
+        { status: 404 },
+      )
     }
 
     return NextResponse.json({
